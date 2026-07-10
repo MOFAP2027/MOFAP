@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Corrida Uva 26-27</title>
+<meta name="theme-color" content="#22381f" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Archivo:wght@400;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.4/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #f6f5ef; }
+  button:hover { filter: brightness(0.97); }
+  input[type="checkbox"] { width: 17px; height: 17px; accent-color: #2e7d4f; cursor: pointer; }
+  #cargando-inicial { font-family: system-ui; padding: 60px 20px; text-align: center; color: #5a6b52; }
+</style>
+</head>
+<body>
+<div id="root"><div id="cargando-inicial">Cargando Corrida Uva 26-27…</div></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef } = React;
+
+// ================================================================
+// CONFIGURACIÓN DE SUPABASE
+// Pega aquí la URL de tu proyecto y la anon key
+// (Supabase → Settings → API → Project URL y anon public key)
+// ================================================================
+const SUPABASE_URL = "https://nchajxjemhbrurbnotkm.supabase.co/rest/v1/";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jaGFqeGplbWhicnVyYm5vdGttIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzYwNTc2NywiZXhwIjoyMDk5MTgxNzY3fQ.5edtikQeTO4JO2OsnNASP7qt0kkKveGKfJ0BMGE1S34";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============ LABORES ============
+const LABORES = [
+  "1.PODA", "CIANAMIDA", "2.AMARRE", "3.SARMENTEO", "4.T.PLASTICO", "5.A.PASADORES",
+  "6.CANOPIA 1", "7.CANOPIA 2", "9. J. FOLLAJERO", "8. CANOPIA 3", "10. A.RACIMOS",
+  "11. AJUSTE DE CARGA", "12. Raleo", "13. RECOJO DE PLASTICO", "14. desuville",
+  "15. Colocado o Retiro de Gorros/Bolsa", "16. Canopia 4", "17. Canopia 5",
+  "18. Pre Limpia", "19. Cosecha"
+];
+const MANUALES = ["1.PODA", "CIANAMIDA"];
+const LOTES_ESPECIALES = ["A8", "A9", "A10", "A11", "G6"];
+const ABREV = { "CIANAMIDA": "CIA", "1.PODA": "PODA", "10. A.RACIMOS": "RAC", "14. desuville": "DES", "19. Cosecha": "COS" };
+const PRECIO_VACIO = { manana: "", tarde: "", noche: "" };
+
+// ============ FÓRMULAS POR DEFECTO ============
+function formulasDefecto(esEspecial) {
+  return {
+    "2.AMARRE":            { base: "1.PODA",        dias: 2 },
+    "3.SARMENTEO":         { base: "CIANAMIDA",     dias: 3 },
+    "4.T.PLASTICO":        { base: "CIANAMIDA",     dias: 5 },
+    "5.A.PASADORES":       { base: "CIANAMIDA",     dias: 5 },
+    "6.CANOPIA 1":         { base: "CIANAMIDA",     dias: esEspecial ? 45 : 35 },
+    "7.CANOPIA 2":         { base: "CIANAMIDA",     dias: esEspecial ? 60 : 50 },
+    "10. A.RACIMOS":       { base: "CIANAMIDA",     dias: 65 },
+    "8. CANOPIA 3":        { base: "10. A.RACIMOS", dias: -1 },
+    "9. J. FOLLAJERO":     { base: "10. A.RACIMOS", dias: -3 },
+    "11. AJUSTE DE CARGA": { base: "CIANAMIDA",     dias: esEspecial ? 75 : 65 },
+    "12. Raleo":           { base: "CIANAMIDA",     dias: esEspecial ? 90 : 80 },
+    "13. RECOJO DE PLASTICO": { base: "CIANAMIDA",  dias: 100 },
+    "14. desuville":       { base: "CIANAMIDA",     dias: esEspecial ? 125 : 115 },
+    "15. Colocado o Retiro de Gorros/Bolsa": { base: "14. desuville", dias: -5 },
+    "16. Canopia 4":       { base: "14. desuville", dias: 5 },
+    "17. Canopia 5":       { base: "14. desuville", dias: 6 },
+    "18. Pre Limpia":      { base: "19. Cosecha",   dias: -10 }
+  };
+}
+
+// ============ DATOS DEL EXCEL (siembra inicial de la base de datos) ============
+const EXCEL = [
+  {"lote":"A11","fundo":"AP","area":5.76,"variedad":"AC","fenologia":190,"fechas":{"1.PODA":"2026-06-06","CIANAMIDA":"2026-06-16","2.AMARRE":"2026-06-07","3.SARMENTEO":"2026-06-19","6.CANOPIA 1":"2026-07-21","7.CANOPIA 2":"2026-08-05","8. CANOPIA 3":"2026-08-05","9. J. FOLLAJERO":"2026-08-17","10. A.RACIMOS":"2026-08-20","11. AJUSTE DE CARGA":"2026-08-30","12. Raleo":"2026-09-04","14. desuville":"2026-10-09","15. Colocado o Retiro de Gorros/Bolsa":"2026-10-04","18. Pre Limpia":"2026-12-13","19. Cosecha":"2026-12-23"}},
+  {"lote":"A10","fundo":"AP","area":5.68,"variedad":"AC","fenologia":188,"fechas":{"1.PODA":"2026-06-09","CIANAMIDA":"2026-06-18","2.AMARRE":"2026-06-10","3.SARMENTEO":"2026-06-21","6.CANOPIA 1":"2026-07-23","7.CANOPIA 2":"2026-08-07","8. CANOPIA 3":"2026-08-08","9. J. FOLLAJERO":"2026-08-19","10. A.RACIMOS":"2026-08-22","11. AJUSTE DE CARGA":"2026-09-01","12. Raleo":"2026-09-06","14. desuville":"2026-10-11","15. Colocado o Retiro de Gorros/Bolsa":"2026-10-06","18. Pre Limpia":"2026-12-13","19. Cosecha":"2026-12-23"}},
+  {"lote":"A7","fundo":"AP","area":5.77,"variedad":"SW","fenologia":190,"fechas":{"1.PODA":"2026-06-12","CIANAMIDA":"2026-06-20","3.SARMENTEO":"2026-06-23","6.CANOPIA 1":"2026-07-25","7.CANOPIA 2":"2026-08-09","8. CANOPIA 3":"2026-08-11","9. J. FOLLAJERO":"2026-08-21","10. A.RACIMOS":"2026-08-24","11. AJUSTE DE CARGA":"2026-09-03","12. Raleo":"2026-09-08","14. desuville":"2026-10-13","15. Colocado o Retiro de Gorros/Bolsa":"2026-10-08","18. Pre Limpia":"2026-12-17","19. Cosecha":"2026-12-27"}},
+  {"lote":"A15","fundo":"AP","area":5.66,"variedad":"SF","fenologia":190,"fechas":{"1.PODA":"2026-06-15","CIANAMIDA":"2026-06-20","6.CANOPIA 1":"2026-07-25","7.CANOPIA 2":"2026-08-09","8. CANOPIA 3":"2026-08-14","9. J. FOLLAJERO":"2026-08-21","10. A.RACIMOS":"2026-08-24","11. AJUSTE DE CARGA":"2026-09-03","12. Raleo":"2026-09-08","14. desuville":"2026-10-13","15. Colocado o Retiro de Gorros/Bolsa":"2026-10-08","18. Pre Limpia":"2026-12-17","19. Cosecha":"2026-12-27"}},
+  {"lote":"A14","fundo":"AP","area":5.7,"variedad":"AC","fenologia":188,"fechas":{"1.PODA":"2026-06-17","CIANAMIDA":"2026-06-25","2.AMARRE":"2026-06-18","3.SARMENTEO":"2026-06-28","6.CANOPIA 1":"2026-07-30","7.CANOPIA 2":"2026-08-14","8. CANOPIA 3":"2026-08-16","9. J. FOLLAJERO":"2026-08-26","10. A.RACIMOS":"2026-08-29","11. AJUSTE DE CARGA":"2026-09-08","12. Raleo":"2026-09-13","14. desuville":"2026-10-18","15. Colocado o Retiro de Gorros/Bolsa":"2026-10-13","18. Pre Limpia":"2026-12-20","19. Cosecha":"2026-12-30"}},
+  {"lote":"A13","fundo":"AP","area":6.08,"variedad":"SW","fenologia":190,"fechas":{"1.PODA":"2026-06-19","CIANAMIDA":"2026-06-25","2.AMARRE":"2026-06-20","3.SARMENTEO":"2026-06-28","6.CANOPIA 1":"2026-07-30","7.CANOPIA 2":"2026-08-14","8. CANOPIA 3":"2026-08-18","9. J. FOLLAJERO":"2026-08-26","10. A.RACIMOS":"2026-08-29","11. AJUSTE DE CARGA":"2026-09-08","12. Raleo":"2026-09-13","14. desuville":"2026-10-18","15. Colocado o Retiro de Gorros/Bolsa":"2026-10-13","18. Pre Limpia":"2026-12-22","19. Cosecha":"2027-01-01"}},
+  {"lote":"A6","fundo":"AP","area":5.78,"variedad":"SW","fenologia":190,"fechas":{"1.PODA":"2026-06-23","CIANAMIDA":"2026-07-01","2.AMARRE":"2026-06-24","6.CANOPIA 1":"2026-08-15","7.CANOPIA 2":"2026-08-30","8. CANOPIA 3":"2026-09-01","9. J. FOLLAJERO":"2026-09-11","10. A.RACIMOS":"2026-09-14","11. AJUSTE DE CARGA":"2026-09-24","12. Raleo":"2026-09-29","14. desuville":"2026-11-03","16. Canopia 4":"2026-11-08","18. Pre Limpia":"2026-12-28","19. Cosecha":"2027-01-07"}},
+  {"lote":"A5","fundo":"AP","area":5.57,"variedad":"SW","fenologia":190,"fechas":{"1.PODA":"2026-06-26","CIANAMIDA":"2026-07-01","2.AMARRE":"2026-06-27","3.SARMENTEO":"2026-07-04","6.CANOPIA 1":"2026-08-15","7.CANOPIA 2":"2026-08-30","8. CANOPIA 3":"2026-09-04","9. J. FOLLAJERO":"2026-09-11","10. A.RACIMOS":"2026-09-14","11. AJUSTE DE CARGA":"2026-09-24","12. Raleo":"2026-09-29","14. desuville":"2026-11-03","17. Canopia 5":"2026-11-08","18. Pre Limpia":"2026-12-28","19. Cosecha":"2027-01-07"}},
+  {"lote":"A12","fundo":"AP","area":2.64,"variedad":"AC","fenologia":190,"fechas":{"1.PODA":"2026-07-02","CIANAMIDA":"2026-07-03","2.AMARRE":"2026-07-03","3.SARMENTEO":"2026-07-06","6.CANOPIA 1":"2026-08-07","7.CANOPIA 2":"2026-08-22","8. CANOPIA 3":"2026-08-31","9. J. FOLLAJERO":"2026-09-03","10. A.RACIMOS":"2026-09-06","11. AJUSTE DE CARGA":"2026-09-16","12. Raleo":"2026-09-21","14. desuville":"2026-10-26","15. Colocado o Retiro de Gorros/Bolsa":"2026-10-21","18. Pre Limpia":"2026-12-30","19. Cosecha":"2027-01-09"}},
+  {"lote":"A1","fundo":"AP","area":5.87,"variedad":"SG","fenologia":180,"fechas":{"1.PODA":"2026-07-15","CIANAMIDA":"2026-07-17","2.AMARRE":"2026-07-16","3.SARMENTEO":"2026-07-20","4.T.PLASTICO":"2026-07-22","5.A.PASADORES":"2026-07-22","6.CANOPIA 1":"2026-08-21","7.CANOPIA 2":"2026-09-05","8. CANOPIA 3":"2026-09-13","9. J. FOLLAJERO":"2026-09-17","10. A.RACIMOS":"2026-09-20","11. AJUSTE DE CARGA":"2026-09-30","12. Raleo":"2026-10-05","13. RECOJO DE PLASTICO":"2026-10-25","14. desuville":"2026-11-09","15. Colocado o Retiro de Gorros/Bolsa":"2026-11-04","18. Pre Limpia":"2027-01-03","19. Cosecha":"2027-01-13"}},
+  {"lote":"A2","fundo":"AP","area":5.94,"variedad":"SG","fenologia":180,"fechas":{"1.PODA":"2026-07-17","CIANAMIDA":"2026-07-19","2.AMARRE":"2026-07-18","3.SARMENTEO":"2026-07-22","4.T.PLASTICO":"2026-07-24","5.A.PASADORES":"2026-07-24","6.CANOPIA 1":"2026-08-23","7.CANOPIA 2":"2026-09-07","8. CANOPIA 3":"2026-09-15","9. J. FOLLAJERO":"2026-09-19","10. A.RACIMOS":"2026-09-22","11. AJUSTE DE CARGA":"2026-10-02","12. Raleo":"2026-10-07","13. RECOJO DE PLASTICO":"2026-10-27","14. desuville":"2026-11-11","15. Colocado o Retiro de Gorros/Bolsa":"2026-11-06","18. Pre Limpia":"2027-01-05","19. Cosecha":"2027-01-15"}},
+  {"lote":"A4","fundo":"AP","area":5.66,"variedad":"SG","fenologia":188,"fechas":{"1.PODA":"2026-07-21","CIANAMIDA":"2026-07-23","2.AMARRE":"2026-07-22","3.SARMENTEO":"2026-07-26","6.CANOPIA 1":"2026-08-27","7.CANOPIA 2":"2026-09-11","8. CANOPIA 3":"2026-09-19","9. J. FOLLAJERO":"2026-09-23","10. A.RACIMOS":"2026-09-26","11. AJUSTE DE CARGA":"2026-10-06","12. Raleo":"2026-10-11","14. desuville":"2026-11-15","15. Colocado o Retiro de Gorros/Bolsa":"2026-11-10","18. Pre Limpia":"2027-01-17","19. Cosecha":"2027-01-27"}},
+  {"lote":"A16","fundo":"AP","area":0.75,"variedad":"AC","fenologia":190,"fechas":{"1.PODA":"2026-07-27","CIANAMIDA":"2026-07-29","2.AMARRE":"2026-07-28","3.SARMENTEO":"2026-08-01","6.CANOPIA 1":"2026-09-02","7.CANOPIA 2":"2026-09-17","8. CANOPIA 3":"2026-09-25","9. J. FOLLAJERO":"2026-09-29","10. A.RACIMOS":"2026-10-02","11. AJUSTE DE CARGA":"2026-10-12","12. Raleo":"2026-10-17","14. desuville":"2026-11-21","15. Colocado o Retiro de Gorros/Bolsa":"2026-11-16","18. Pre Limpia":"2027-01-25","19. Cosecha":"2027-02-04"}},
+  {"lote":"A8","fundo":"AP","area":6.0,"variedad":"CC","fenologia":180,"fechas":{"1.PODA":"2026-07-29","CIANAMIDA":"2026-07-31","2.AMARRE":"2026-07-30","3.SARMENTEO":"2026-08-03","4.T.PLASTICO":"2026-08-05","5.A.PASADORES":"2026-08-05","6.CANOPIA 1":"2026-09-14","7.CANOPIA 2":"2026-09-29","8. CANOPIA 3":"2026-10-07","9. J. FOLLAJERO":"2026-10-11","10. A.RACIMOS":"2026-10-14","11. AJUSTE DE CARGA":"2026-10-24","12. Raleo":"2026-10-29","13. RECOJO DE PLASTICO":"2026-11-08","14. desuville":"2026-12-03","15. Colocado o Retiro de Gorros/Bolsa":"2026-11-28","18. Pre Limpia":"2027-01-17","19. Cosecha":"2027-01-27"}},
+  {"lote":"A3","fundo":"AP","area":5.46,"variedad":"AC","fenologia":190,"fechas":{"1.PODA":"2026-08-01","CIANAMIDA":"2026-08-03","2.AMARRE":"2026-08-02","3.SARMENTEO":"2026-08-06","6.CANOPIA 1":"2026-09-07","7.CANOPIA 2":"2026-09-22","8. CANOPIA 3":"2026-09-30","9. J. FOLLAJERO":"2026-10-04","10. A.RACIMOS":"2026-10-07","11. AJUSTE DE CARGA":"2026-10-17","12. Raleo":"2026-10-22","14. desuville":"2026-11-26","15. Colocado o Retiro de Gorros/Bolsa":"2026-11-21","18. Pre Limpia":"2027-01-30","19. Cosecha":"2027-02-09"}},
+  {"lote":"A9","fundo":"AP","area":6.14,"variedad":"CC","fenologia":190,"fechas":{"1.PODA":"2026-08-02","CIANAMIDA":"2026-08-04","2.AMARRE":"2026-08-03","3.SARMENTEO":"2026-08-07","4.T.PLASTICO":"2026-08-09","5.A.PASADORES":"2026-08-09","6.CANOPIA 1":"2026-09-18","7.CANOPIA 2":"2026-10-03","8. CANOPIA 3":"2026-10-11","9. J. FOLLAJERO":"2026-10-15","10. A.RACIMOS":"2026-10-18","11. AJUSTE DE CARGA":"2026-10-28","12. Raleo":"2026-11-02","13. RECOJO DE PLASTICO":"2026-11-12","14. desuville":"2026-12-07","15. Colocado o Retiro de Gorros/Bolsa":"2026-12-02","18. Pre Limpia":"2027-01-31","19. Cosecha":"2027-02-10"}},
+  {"lote":"G1","fundo":"LG","area":1.9,"variedad":"SS","fenologia":195,"fechas":{}},
+  {"lote":"G2","fundo":"LG","area":5.79,"variedad":"AC","fenologia":195,"fechas":{}},
+  {"lote":"G3","fundo":"LG","area":5.54,"variedad":"SS","fenologia":195,"fechas":{}},
+  {"lote":"G4","fundo":"LG","area":5.79,"variedad":"AC","fenologia":195,"fechas":{}},
+  {"lote":"G5","fundo":"LG","area":5.54,"variedad":"CC","fenologia":195,"fechas":{}},
+  {"lote":"G6","fundo":"LG","area":5.79,"variedad":"CC","fenologia":200,"fechas":{}},
+  {"lote":"G7","fundo":"LG","area":5.48,"variedad":"SG","fenologia":190,"fechas":{}},
+  {"lote":"G8","fundo":"LG","area":5.79,"variedad":"SG","fenologia":185,"fechas":{}},
+  {"lote":"G9","fundo":"LG","area":5.79,"variedad":"TM","fenologia":190,"fechas":{}},
+  {"lote":"G10","fundo":"LG","area":5.87,"variedad":"TM","fenologia":190,"fechas":{}},
+  {"lote":"G11","fundo":"LG","area":5.79,"variedad":"JS","fenologia":190,"fechas":{}},
+  {"lote":"G12","fundo":"LG","area":5.87,"variedad":"JS","fenologia":190,"fechas":{}},
+  {"lote":"G13","fundo":"LG","area":4.83,"variedad":"SG","fenologia":185,"fechas":{}},
+  {"lote":"G14","fundo":"LG","area":5.87,"variedad":"SG","fenologia":190,"fechas":{}},
+  {"lote":"G15","fundo":"LG","area":5.79,"variedad":"SG","fenologia":190,"fechas":{}},
+  {"lote":"G16","fundo":"LG","area":5.87,"variedad":"SG","fenologia":190,"fechas":{}},
+  {"lote":"G17","fundo":"LG","area":6.86,"variedad":"TM","fenologia":190,"fechas":{}},
+  {"lote":"G18","fundo":"LG","area":6.86,"variedad":"TM","fenologia":190,"fechas":{}},
+  {"lote":"G19","fundo":"LG","area":6.86,"variedad":"JS","fenologia":195,"fechas":{}},
+  {"lote":"G20","fundo":"LG","area":6.94,"variedad":"JS","fenologia":200,"fechas":{}},
+  {"lote":"G21","fundo":"LG","area":6.85,"variedad":"AC","fenologia":195,"fechas":{}},
+  {"lote":"G22","fundo":"LG","area":7.11,"variedad":"JS","fenologia":195,"fechas":{}},
+  {"lote":"G23","fundo":"LG","area":6.4,"variedad":"SG","fenologia":190,"fechas":{}},
+  {"lote":"G24","fundo":"LG","area":6.66,"variedad":"SG","fenologia":190,"fechas":{}}
+];
+
+const PARAMETROS_INICIALES = [
+  { tipo: "pauta", labor: "1.PODA", lista: ["N° de cargadores a dejar", "N° de yemas por cargador"] },
+  { tipo: "ev", labor: "1.PODA", lista: ["PROM CARGADORES", "PROM YEMAS", "PROM PITON"] },
+  { tipo: "ev", labor: "2.AMARRE", lista: ["Brazos asegurados", "Espacios cubiertos"] }
+];
+
+const MATERIALES_INICIALES = [
+  { nombre: "Lentes", tipo: "EPP", unidad: "unidad", duracion_dias: "", cantidad_ha: "", labores: [] },
+  { nombre: "Guantes badana", tipo: "EPP", unidad: "par", duracion_dias: "", cantidad_ha: "", labores: [] },
+  { nombre: "Amarra", tipo: "Insumo", unidad: "kg", duracion_dias: "", cantidad_ha: "", labores: ["2.AMARRE"] },
+  { nombre: "Junco", tipo: "Insumo", unidad: "kg", duracion_dias: "", cantidad_ha: "", labores: [] },
+  { nombre: "Ligapal", tipo: "Insumo", unidad: "rollo", duracion_dias: "", cantidad_ha: "", labores: [] }
+];
+
+// ============ UTILIDADES ============
+const hoy = () => new Date().toISOString().slice(0, 10);
+const addDias = (iso, dias) => {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + Number(dias));
+  return d.toISOString().slice(0, 10);
+};
+const fmtCorta = (iso) => {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  return `${parseInt(d)} ${meses[parseInt(m)-1]}`;
+};
+const diffDias = (a, b) => Math.round((new Date(a + "T00:00:00") - new Date(b + "T00:00:00")) / 86400000);
+const nombreCortoLabor = (l) => l.replace(/^\d+\.\s*/, "").replace("Colocado o Retiro de Gorros/Bolsa", "Gorros/Bolsa");
+const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now());
+
+// ============ MOTOR DE FÓRMULAS ============
+function computarFechas(l) {
+  const f = {};
+  if (l.poda) f["1.PODA"] = l.poda;
+  if (l.cianamida) f["CIANAMIDA"] = l.cianamida;
+  for (let pase = 0; pase < 6; pase++) {
+    let cambio = false;
+    LABORES.forEach(lab => {
+      if (f[lab] || MANUALES.includes(lab)) return;
+      if (lab === "19. Cosecha") {
+        if (l.cianamida && l.fenologia) { f[lab] = addDias(l.cianamida, l.fenologia); cambio = true; }
+        return;
+      }
+      const fo = l.formulas?.[lab];
+      if (!fo) return;
+      const fechaBase = fo.base === "CIANAMIDA" ? l.cianamida
+        : fo.base === "1.PODA" ? l.poda
+        : f[fo.base];
+      if (fechaBase) { f[lab] = addDias(fechaBase, fo.dias); cambio = true; }
+    });
+    if (!cambio) break;
+  }
+  (l.excluidas || []).forEach(lab => { delete f[lab]; });
+  return f;
+}
+
+function construirLote(base) {
+  const esp = LOTES_ESPECIALES.includes(base.lote);
+  const def = formulasDefecto(esp);
+  const fechas = base.fechas || {};
+  const poda = fechas["1.PODA"] || null;
+  const cianamida = fechas["CIANAMIDA"] || null;
+  let fenologia = base.fenologia || 190;
+  if (cianamida && fechas["19. Cosecha"]) fenologia = diffDias(fechas["19. Cosecha"], cianamida);
+  const formulas = {};
+  Object.keys(def).forEach(lab => {
+    const fo = def[lab];
+    const fechaBase = fo.base === "CIANAMIDA" ? cianamida : fo.base === "1.PODA" ? poda : fechas[fo.base];
+    formulas[lab] = (fechas[lab] && fechaBase)
+      ? { base: fo.base, dias: diffDias(fechas[lab], fechaBase) }
+      : { ...fo };
+  });
+  if (formulas["2.AMARRE"]?.base !== "1.PODA") formulas["2.AMARRE"] = { base: "1.PODA", dias: 2 };
+  return { lote: base.lote, fundo: base.fundo, area: base.area, variedad: base.variedad, fenologia, poda, cianamida, formulas, excluidas: [] };
+}
+
+function estadoLabor(fechaProg, fechaReal) {
+  if (fechaReal) return "completada";
+  if (!fechaProg) return "sin-fecha";
+  const dias = diffDias(fechaProg, hoy());
+  if (dias < 0) return "vencida";
+  if (dias <= 14) return "proxima";
+  return "pendiente";
+}
+
+// ============ CAPA DE BASE DE DATOS (SUPABASE) ============
+const db = {
+  async cargarTodo() {
+    const [l, r, p, pr, m] = await Promise.all([
+      sb.from("corrida_lotes").select("*"),
+      sb.from("corrida_reales").select("*"),
+      sb.from("corrida_pautas").select("*").order("created_at", { ascending: false }),
+      sb.from("corrida_parametros").select("*"),
+      sb.from("corrida_materiales").select("*").order("created_at")
+    ]);
+    for (const res of [l, r, p, pr, m]) if (res.error) throw res.error;
+    return { lotes: l.data, reales: r.data, pautas: p.data, parametros: pr.data, materiales: m.data };
+  },
+  async sembrarSiVacio(datos) {
+    if (datos.lotes.length > 0) return false;
+    const filas = EXCEL.map(construirLote).map(x => ({
+      lote: x.lote, fundo: x.fundo, area: x.area, variedad: x.variedad,
+      fenologia: x.fenologia, poda: x.poda, cianamida: x.cianamida,
+      formulas: x.formulas, excluidas: x.excluidas
+    }));
+    const r1 = await sb.from("corrida_lotes").insert(filas);
+    if (r1.error) throw r1.error;
+    await sb.from("corrida_parametros").upsert(PARAMETROS_INICIALES, { onConflict: "tipo,labor" });
+    await sb.from("corrida_materiales").insert(MATERIALES_INICIALES);
+    return true;
+  },
+  guardarLote(l) {
+    return sb.from("corrida_lotes").upsert({
+      lote: l.lote, fundo: l.fundo, area: l.area, variedad: l.variedad,
+      fenologia: l.fenologia, poda: l.poda, cianamida: l.cianamida,
+      formulas: l.formulas, excluidas: l.excluidas || [], updated_at: new Date().toISOString()
+    });
+  },
+  guardarReal(lote, labor, fecha) {
+    if (fecha) return sb.from("corrida_reales").upsert({ lote, labor, fecha }, { onConflict: "lote,labor" });
+    return sb.from("corrida_reales").delete().match({ lote, labor });
+  },
+  guardarPauta(p) {
+    return sb.from("corrida_pautas").upsert({
+      id: p.id, labor: p.labor, lote: p.lote || "",
+      pauta: p.pauta || "", pauta_val: p.pautaVal || {}, precio: p.precio || {}, ev: p.ev || {}
+    });
+  },
+  eliminarPauta(id) { return sb.from("corrida_pautas").delete().eq("id", id); },
+  guardarParametros(tipo, labor, lista) {
+    return sb.from("corrida_parametros").upsert({ tipo, labor, lista }, { onConflict: "tipo,labor" });
+  },
+  guardarMaterial(m) {
+    return sb.from("corrida_materiales").upsert({
+      id: m.id, nombre: m.nombre || "", tipo: m.tipo || "Insumo", unidad: m.unidad || "",
+      duracion_dias: m.duracionDias || "", cantidad_ha: m.cantidadHa || "", labores: m.labores || []
+    });
+  },
+  eliminarMaterial(id) { return sb.from("corrida_materiales").delete().eq("id", id); }
+};
+
+// ============ COMPONENTE PRINCIPAL ============
+function CronogramaUva() {
+  const [lotes, setLotes] = useState(null);
+  const [reales, setReales] = useState({});
+  const [pautas, setPautas] = useState([]);
+  const [parametrosEv, setParametrosEv] = useState({});
+  const [parametrosPauta, setParametrosPauta] = useState({});
+  const [materiales, setMateriales] = useState([]);
+  const [vista, setVista] = useState("panel");
+  const [modoCrono, setModoCrono] = useState("programado");
+  const [filtroFundo, setFiltroFundo] = useState("todos");
+  const [filtroVariedad, setFiltroVariedad] = useState("todas");
+  const [filtroLaborPauta, setFiltroLaborPauta] = useState("todas");
+  const [loteAbierto, setLoteAbierto] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
+
+  const recargar = async () => {
+    try {
+      setError(null);
+      let datos = await db.cargarTodo();
+      const sembrado = await db.sembrarSiVacio(datos);
+      if (sembrado) datos = await db.cargarTodo();
+      setLotes(datos.lotes.map(f => ({
+        lote: f.lote, fundo: f.fundo, area: Number(f.area), variedad: f.variedad,
+        fenologia: f.fenologia, poda: f.poda, cianamida: f.cianamida,
+        formulas: f.formulas || {}, excluidas: f.excluidas || []
+      })));
+      const r = {};
+      datos.reales.forEach(x => { r[`${x.lote}|${x.labor}`] = x.fecha; });
+      setReales(r);
+      setPautas(datos.pautas.map(f => ({
+        id: f.id, labor: f.labor, lote: f.lote || "", pauta: f.pauta || "",
+        pautaVal: f.pauta_val || {}, precio: { ...PRECIO_VACIO, ...(f.precio || {}) }, ev: f.ev || {}
+      })));
+      const pe = {}, pp = {};
+      datos.parametros.forEach(x => { (x.tipo === "ev" ? pe : pp)[x.labor] = x.lista || []; });
+      setParametrosEv(pe);
+      setParametrosPauta(pp);
+      setMateriales(datos.materiales.map(f => ({
+        id: f.id, nombre: f.nombre, tipo: f.tipo, unidad: f.unidad,
+        duracionDias: f.duracion_dias || "", cantidadHa: f.cantidad_ha || "", labores: f.labores || []
+      })));
+    } catch (e) {
+      console.error(e);
+      setError(SUPABASE_ANON_KEY.includes("PEGA_AQUI")
+        ? "Falta configurar la anon key de Supabase en index.html"
+        : "No se pudo conectar a la base de datos. Revisa tu conexión y recarga.");
+      if (!lotes) setLotes([]);
+    }
+  };
+
+  useEffect(() => { recargar(); }, []);
+
+  // Ejecuta una operación de guardado mostrando el estado
+  const guardar = async (op) => {
+    setGuardando(true);
+    try {
+      const { error: err } = await op();
+      if (err) throw err;
+      setError(null);
+    } catch (e) {
+      console.error(e);
+      setError("No se pudo guardar. Revisa tu conexión e intenta de nuevo.");
+    }
+    setGuardando(false);
+  };
+
+  const actualizarLote = (nombreLote, cambios) => {
+    let nuevoLote = null;
+    setLotes(prev => prev.map(l => {
+      if (l.lote !== nombreLote) return l;
+      nuevoLote = { ...l, ...cambios };
+      return nuevoLote;
+    }));
+    if (nuevoLote) guardar(() => db.guardarLote(nuevoLote));
+    else {
+      // por si el estado aún no renderizó, buscar en el actual
+      const base = lotes.find(l => l.lote === nombreLote);
+      if (base) { nuevoLote = { ...base, ...cambios }; guardar(() => db.guardarLote(nuevoLote)); }
+    }
+  };
+
+  const setFechaReal = (lote, labor, fecha) => {
+    setReales(prev => {
+      const n = { ...prev };
+      if (fecha) n[`${lote}|${labor}`] = fecha;
+      else delete n[`${lote}|${labor}`];
+      return n;
+    });
+    guardar(() => db.guardarReal(lote, labor, fecha));
+  };
+
+  const crearPauta = (labor, lote) => {
+    const p = { id: nuevoId(), labor, lote, pauta: "", pautaVal: {}, precio: { ...PRECIO_VACIO }, ev: {} };
+    setPautas(prev => [p, ...prev]);
+    guardar(() => db.guardarPauta(p));
+    return p.id;
+  };
+  const actualizarPauta = (id, cambios) => {
+    let nueva = null;
+    setPautas(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      nueva = { ...p, ...cambios };
+      return nueva;
+    }));
+    if (!nueva) { const base = pautas.find(p => p.id === id); if (base) nueva = { ...base, ...cambios }; }
+    if (nueva) guardar(() => db.guardarPauta(nueva));
+  };
+  const eliminarPauta = (id) => {
+    setPautas(prev => prev.filter(p => p.id !== id));
+    guardar(() => db.eliminarPauta(id));
+  };
+
+  const guardarParametrosEv = (labor, lista) => {
+    setParametrosEv(prev => ({ ...prev, [labor]: lista }));
+    guardar(() => db.guardarParametros("ev", labor, lista));
+  };
+  const guardarParametrosPauta = (labor, lista) => {
+    setParametrosPauta(prev => ({ ...prev, [labor]: lista }));
+    guardar(() => db.guardarParametros("pauta", labor, lista));
+  };
+
+  const crearMaterial = () => {
+    const m = { id: nuevoId(), nombre: "", tipo: "Insumo", unidad: "", duracionDias: "", cantidadHa: "", labores: [] };
+    setMateriales(prev => [...prev, m]);
+    guardar(() => db.guardarMaterial(m));
+  };
+  const actualizarMaterial = (id, cambios) => {
+    let nuevo = null;
+    setMateriales(prev => prev.map(m => {
+      if (m.id !== id) return m;
+      nuevo = { ...m, ...cambios };
+      return nuevo;
+    }));
+    if (!nuevo) { const base = materiales.find(m => m.id === id); if (base) nuevo = { ...base, ...cambios }; }
+    if (nuevo) guardar(() => db.guardarMaterial(nuevo));
+  };
+  const eliminarMaterial = (id) => {
+    setMateriales(prev => prev.filter(m => m.id !== id));
+    guardar(() => db.eliminarMaterial(id));
+  };
+
+  const fechasPorLote = useMemo(() => {
+    if (!lotes) return {};
+    const map = {};
+    lotes.forEach(l => { map[l.lote] = computarFechas(l); });
+    return map;
+  }, [lotes]);
+
+  const lotesFiltrados = useMemo(() => {
+    if (!lotes) return [];
+    return lotes.filter(l =>
+      (filtroFundo === "todos" || l.fundo === filtroFundo) &&
+      (filtroVariedad === "todas" || l.variedad === filtroVariedad)
+    );
+  }, [lotes, filtroFundo, filtroVariedad]);
+
+  const metricas = useMemo(() => {
+    if (!lotes) return null;
+    let proximas = [], vencidas = [], totalProg = 0, totalComp = 0;
+    lotes.forEach(l => {
+      const fechas = fechasPorLote[l.lote] || {};
+      LABORES.forEach(lab => {
+        const f = fechas[lab];
+        if (!f) return;
+        totalProg++;
+        const real = reales[`${l.lote}|${lab}`];
+        if (real) { totalComp++; return; }
+        const dias = diffDias(f, hoy());
+        if (dias < 0) vencidas.push({ lote: l.lote, labor: lab, fecha: f, dias });
+        else if (dias <= 14) proximas.push({ lote: l.lote, labor: lab, fecha: f, dias });
+      });
+    });
+    proximas.sort((a, b) => a.dias - b.dias);
+    vencidas.sort((a, b) => a.dias - b.dias);
+    const sinCrono = lotes.filter(l => !l.cianamida);
+    return { proximas, vencidas, totalProg, totalComp, sinCrono };
+  }, [lotes, reales, fechasPorLote]);
+
+  if (!lotes) return (
+    <div style={{ fontFamily: "system-ui", padding: 60, textAlign: "center", color: "#5a6b52" }}>
+      Conectando con la base de datos…
+    </div>
+  );
+
+  const areaTotal = lotes.reduce((s, l) => s + l.area, 0);
+  const loteDetalle = loteAbierto ? lotes.find(l => l.lote === loteAbierto) : null;
+
+  return (
+    <div style={S.app}>
+      <header style={S.header}>
+        <div>
+          <div style={S.eyebrow}>CAMPAÑA 26–27 · UVA DE MESA</div>
+          <h1 style={S.titulo}>Gestión de labores</h1>
+        </div>
+        <div style={S.headerStats}>
+          <span><b>{lotes.length}</b> lotes</span>
+          <span style={S.dot}>·</span>
+          <span><b>{areaTotal.toFixed(1)}</b> ha</span>
+          <span style={S.dot}>·</span>
+          <button style={S.btnRecargar} onClick={recargar} title="Traer los últimos datos de la base de datos">↻ Actualizar</button>
+        </div>
+      </header>
+
+      <nav style={S.tabs}>
+        {[["panel","Panel"],["cronograma","Cronograma"],["lotes","Lotes"],["pautas","Pautas"],["materiales","Materiales"]].map(([id, nombre]) => (
+          <button key={id} onClick={() => setVista(id)}
+            style={{ ...S.tab, ...(vista === id ? S.tabActiva : {}) }}>
+            {nombre}
+          </button>
+        ))}
+        <div style={{ flex: 1 }} />
+        {guardando && <span style={S.guardando}>Guardando…</span>}
+      </nav>
+
+      {error && <div style={S.errorBar}>{error}</div>}
+
+      {/* ============ PANEL ============ */}
+      {vista === "panel" && metricas && (
+        <div>
+          <div style={S.cards}>
+            <Card titulo="Labores vencidas" valor={metricas.vencidas.length} tono={metricas.vencidas.length > 0 ? "rojo" : "verde"} />
+            <Card titulo="Próximas 14 días" valor={metricas.proximas.length} tono="ambar" />
+            <Card titulo="Completadas" valor={`${metricas.totalComp}/${metricas.totalProg}`} tono="verde" />
+            <Card titulo="Lotes sin cianamida" valor={metricas.sinCrono.length} tono={metricas.sinCrono.length > 0 ? "uva" : "verde"} />
+          </div>
+
+          {metricas.sinCrono.length > 0 && (
+            <div style={S.aviso}>
+              <b>{metricas.sinCrono.length} lotes aún no tienen fecha de cianamida.</b> Abre el lote en la pestaña
+              "Lotes", ingresa poda, cianamida y fenología, y todas las demás fechas se calculan solas.
+            </div>
+          )}
+
+          <div style={S.dosColumnas}>
+            <section>
+              <h2 style={S.subtitulo}>Vencidas sin completar</h2>
+              {metricas.vencidas.length === 0
+                ? <p style={S.vacio}>Nada vencido. Todo al día.</p>
+                : <ListaLabores items={metricas.vencidas.slice(0, 12)} tono="rojo" onClick={(it) => setLoteAbierto(it.lote)} />}
+            </section>
+            <section>
+              <h2 style={S.subtitulo}>Próximas 14 días</h2>
+              {metricas.proximas.length === 0
+                ? <p style={S.vacio}>Sin labores programadas en las próximas dos semanas.</p>
+                : <ListaLabores items={metricas.proximas.slice(0, 12)} tono="ambar" onClick={(it) => setLoteAbierto(it.lote)} />}
+            </section>
+          </div>
+        </div>
+      )}
+
+      {/* ============ CRONOGRAMA ============ */}
+      {vista === "cronograma" && (
+        <div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+            <div style={S.switchModo}>
+              <button style={{ ...S.switchBtn, ...(modoCrono === "programado" ? S.switchActivo : {}) }}
+                onClick={() => setModoCrono("programado")}>Programado</button>
+              <button style={{ ...S.switchBtn, ...(modoCrono === "real" ? S.switchActivoReal : {}) }}
+                onClick={() => setModoCrono("real")}>Real</button>
+            </div>
+            <Filtros filtroFundo={filtroFundo} setFiltroFundo={setFiltroFundo}
+              filtroVariedad={filtroVariedad} setFiltroVariedad={setFiltroVariedad} lotes={lotes} />
+          </div>
+
+          {modoCrono === "programado"
+            ? <div style={S.leyenda}>
+                <Chip color="#2e7d4f" texto="Completada" />
+                <Chip color="#b3261e" texto="Vencida" />
+                <Chip color="#b8860b" texto="Próxima (≤14 d)" />
+                <Chip color="#8a8f85" texto="Programada" />
+              </div>
+            : <div style={S.leyenda}>
+                <Chip color="#2e7d4f" texto="Hecha a tiempo o adelantada" />
+                <Chip color="#b8860b" texto="Hecha con atraso (se muestra +días)" />
+                <Chip color="#c8c6ba" texto="Aún sin fecha real" />
+              </div>}
+
+          <div style={S.tablaWrap}>
+            <table style={S.tabla}>
+              <thead>
+                <tr>
+                  <th style={{ ...S.th, ...S.thFijo }}>Lote</th>
+                  <th style={S.th}>DDC</th>
+                  {LABORES.map(lab => (
+                    <th key={lab} style={S.th} title={lab}>{nombreCortoLabor(lab)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {lotesFiltrados.map(l => {
+                  const fechas = fechasPorLote[l.lote] || {};
+                  const ddc = l.cianamida ? diffDias(hoy(), l.cianamida) : null;
+                  return (
+                    <tr key={l.lote}>
+                      <td style={{ ...S.td, ...S.tdFijo }} onClick={() => setLoteAbierto(l.lote)}>
+                        <b>{l.lote}</b>
+                        <div style={S.tdSub}>{l.fundo} · {l.variedad} · {l.area} ha</div>
+                      </td>
+                      <td style={{ ...S.td, fontWeight: 700, color: "#6b3fa0" }} onClick={() => setLoteAbierto(l.lote)}>
+                        {ddc !== null ? ddc : "—"}
+                      </td>
+                      {LABORES.map(lab => {
+                        if ((l.excluidas || []).includes(lab)) return (
+                          <td key={lab} style={{ ...S.td, color: "#c8c6ba", background: "#f4f3ec", fontStyle: "italic" }}
+                            onClick={() => setLoteAbierto(l.lote)} title={`${lab} no aplica en ${l.lote}`}>
+                            n/a
+                          </td>
+                        );
+                        const prog = fechas[lab];
+                        const real = reales[`${l.lote}|${lab}`];
+                        if (modoCrono === "programado") {
+                          const est = estadoLabor(prog, real);
+                          return (
+                            <td key={lab} style={{ ...S.td, ...S.celda[est] }}
+                              onClick={() => setLoteAbierto(l.lote)} title={`${l.lote} — ${lab}`}>
+                              {fmtCorta(prog)}
+                            </td>
+                          );
+                        }
+                        if (!real) return (
+                          <td key={lab} style={{ ...S.td, color: "#c8c6ba" }}
+                            onClick={() => setLoteAbierto(l.lote)}>—</td>
+                        );
+                        const desv = prog ? diffDias(real, prog) : null;
+                        const atrasada = desv !== null && desv > 0;
+                        return (
+                          <td key={lab}
+                            style={{ ...S.td, background: atrasada ? "#fbf3dd" : "#e5f2e9", color: atrasada ? "#8a6508" : "#2e7d4f", fontWeight: 600 }}
+                            onClick={() => setLoteAbierto(l.lote)}
+                            title={`${l.lote} — ${lab} · programada ${fmtCorta(prog)}`}>
+                            {fmtCorta(real)}{desv !== null && desv !== 0 ? ` (${desv > 0 ? "+" : ""}${desv})` : ""}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ============ LOTES ============ */}
+      {vista === "lotes" && (
+        <div>
+          <Filtros filtroFundo={filtroFundo} setFiltroFundo={setFiltroFundo}
+            filtroVariedad={filtroVariedad} setFiltroVariedad={setFiltroVariedad} lotes={lotes} />
+          <div style={S.gridLotes}>
+            {lotesFiltrados.map(l => {
+              const fechas = fechasPorLote[l.lote] || {};
+              const nLabs = Object.keys(fechas).length;
+              const nComp = LABORES.filter(lab => fechas[lab] && reales[`${l.lote}|${lab}`]).length;
+              const vencidas = LABORES.filter(lab =>
+                estadoLabor(fechas[lab], reales[`${l.lote}|${lab}`]) === "vencida").length;
+              return (
+                <button key={l.lote} style={S.cardLote} onClick={() => setLoteAbierto(l.lote)}>
+                  <div style={S.cardLoteTop}>
+                    <span style={S.loteNombre}>{l.lote}</span>
+                    <span style={S.badgeVar}>{l.variedad}{LOTES_ESPECIALES.includes(l.lote) ? " ★" : ""}</span>
+                  </div>
+                  <div style={S.cardLoteInfo}>{l.fundo} · {l.area} ha · fen. {l.fenologia} d</div>
+                  {nLabs === 0
+                    ? <div style={S.cardLoteAlerta}>Falta poda y cianamida — toca para ingresar</div>
+                    : <div style={S.cardLoteProg}>
+                        <div style={{ ...S.barra, width: `${(nComp / nLabs) * 100}%` }} />
+                        <span style={S.barraTxt}>{nComp}/{nLabs} labores{vencidas > 0 ? ` · ${vencidas} vencidas` : ""}</span>
+                      </div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ============ PAUTAS ============ */}
+      {vista === "pautas" && (
+        <SeccionPautas pautas={pautas} lotes={lotes}
+          onCrear={crearPauta} onActualizar={actualizarPauta} onEliminar={eliminarPauta}
+          parametrosEv={parametrosEv} onGuardarParametrosEv={guardarParametrosEv}
+          parametrosPauta={parametrosPauta} onGuardarParametrosPauta={guardarParametrosPauta}
+          filtroLabor={filtroLaborPauta} setFiltroLabor={setFiltroLaborPauta} />
+      )}
+
+      {/* ============ MATERIALES ============ */}
+      {vista === "materiales" && (
+        <SeccionMateriales materiales={materiales}
+          onCrear={crearMaterial} onActualizar={actualizarMaterial} onEliminar={eliminarMaterial} />
+      )}
+
+      {loteDetalle && (
+        <DetalleLote lote={loteDetalle} fechas={fechasPorLote[loteDetalle.lote] || {}}
+          reales={reales}
+          onCerrar={() => setLoteAbierto(null)}
+          onActualizar={actualizarLote}
+          onFechaReal={setFechaReal} />
+      )}
+    </div>
+  );
+}
+
+// ============ SECCIÓN PAUTAS ============
+function SeccionPautas({ pautas, lotes, onCrear, onActualizar, onEliminar,
+  parametrosEv, onGuardarParametrosEv, parametrosPauta, onGuardarParametrosPauta,
+  filtroLabor, setFiltroLabor }) {
+  const [filtroFundo, setFiltroFundo] = useState("todos");
+  const [filtroLote, setFiltroLote] = useState("todos");
+  const [mostrarNueva, setMostrarNueva] = useState(false);
+  const [nuevaLabor, setNuevaLabor] = useState(LABORES[0]);
+  const [nuevoLote, setNuevoLote] = useState("");
+  const [mostrarParams, setMostrarParams] = useState(false);
+  const [tipoParams, setTipoParams] = useState("pauta");
+  const [laborParams, setLaborParams] = useState(LABORES[0]);
+  const [nuevoParam, setNuevoParam] = useState("");
+  const [expandida, setExpandida] = useState(null);
+
+  const fundoDe = useMemo(() => {
+    const m = {};
+    (lotes || []).forEach(l => { m[l.lote] = l.fundo; });
+    return m;
+  }, [lotes]);
+
+  const crear = () => {
+    const id = onCrear(nuevaLabor, nuevoLote);
+    setMostrarNueva(false);
+    setNuevoLote("");
+    setExpandida(id);
+  };
+
+  const setParamsLabor = tipoParams === "pauta" ? onGuardarParametrosPauta : onGuardarParametrosEv;
+  const paramsActuales = tipoParams === "pauta" ? parametrosPauta : parametrosEv;
+  const paramsPautaDe = (labor) => parametrosPauta[labor] || [];
+  const paramsEvDe = (labor) => parametrosEv[labor] || [];
+  const agregarParam = () => {
+    const t = nuevoParam.trim();
+    const lista = paramsActuales[laborParams] || [];
+    if (!t || lista.includes(t)) return;
+    setParamsLabor(laborParams, [...lista, t]);
+    setNuevoParam("");
+  };
+  const quitarParam = (param) => {
+    const lista = paramsActuales[laborParams] || [];
+    setParamsLabor(laborParams, lista.filter(x => x !== param));
+  };
+  const moverParam = (param, dir) => {
+    const lista = [...(paramsActuales[laborParams] || [])];
+    const i = lista.indexOf(param);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= lista.length) return;
+    [lista[i], lista[j]] = [lista[j], lista[i]];
+    setParamsLabor(laborParams, lista);
+  };
+
+  const visibles = pautas.filter(p =>
+    (filtroLabor === "todas" || p.labor === filtroLabor) &&
+    (filtroFundo === "todos" || !p.lote || fundoDe[p.lote] === filtroFundo) &&
+    (filtroLote === "todos" || (filtroLote === "general" ? !p.lote : p.lote === filtroLote))
+  );
+  const lotesFiltro = (lotes || []).filter(l => filtroFundo === "todos" || l.fundo === filtroFundo);
+  const TURNOS = [["manana", "Mañana"], ["tarde", "Tarde"], ["noche", "Noche"]];
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+        <button style={S.btnPrimario} onClick={() => setMostrarNueva(v => !v)}>+ Nueva pauta</button>
+        <button style={S.btnSecundario} onClick={() => setMostrarParams(v => !v)}>⚙ Parámetros</button>
+        <select style={S.select} value={filtroFundo}
+          onChange={e => { setFiltroFundo(e.target.value); setFiltroLote("todos"); }}>
+          <option value="todos">Ambos fundos</option>
+          <option value="LG">Fundo LG</option>
+          <option value="AP">Fundo AP</option>
+        </select>
+        <select style={S.select} value={filtroLote} onChange={e => setFiltroLote(e.target.value)}>
+          <option value="todos">Todos los lotes</option>
+          <option value="general">Sin lote (generales)</option>
+          {lotesFiltro.map(l => <option key={l.lote} value={l.lote}>{l.lote} · {l.fundo}</option>)}
+        </select>
+        <select style={S.select} value={filtroLabor} onChange={e => setFiltroLabor(e.target.value)}>
+          <option value="todas">Todas las labores</option>
+          {LABORES.map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
+      </div>
+
+      {filtroLote !== "todos" && filtroLote !== "general" && (
+        <p style={{ fontSize: 12.5, color: "#6b7565", margin: "0 0 10px" }}>
+          Mostrando las {visibles.length} pauta{visibles.length !== 1 ? "s" : ""} de labores registradas en el lote <b>{filtroLote}</b>.
+        </p>
+      )}
+
+      {mostrarNueva && (
+        <div style={S.formNueva}>
+          <div style={S.manualTitulo}>Nueva pauta — elige labor y lote (no se podrán cambiar después)</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <select style={S.select} value={nuevaLabor} onChange={e => setNuevaLabor(e.target.value)}>
+              {LABORES.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+            <select style={S.select} value={nuevoLote} onChange={e => setNuevoLote(e.target.value)}>
+              <option value="">Sin lote (general)</option>
+              {(lotes || []).map(l => <option key={l.lote} value={l.lote}>{l.lote} · {l.fundo}</option>)}
+            </select>
+            <button style={S.btnPrimario} onClick={crear}>Crear pauta</button>
+            <button style={S.btnSecundario} onClick={() => setMostrarNueva(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {mostrarParams && (
+        <div style={S.formNueva}>
+          <div style={S.manualTitulo}>Parámetros por labor</div>
+          <p style={{ fontSize: 12.5, color: "#4a3568", margin: "0 0 8px", lineHeight: 1.5 }}>
+            Los parámetros de <b>pauta</b> son lo que se indica al personal;
+            los de <b>ev. de calidad</b> son lo que se mide en campo. Aparecen automáticamente en todas
+            las pautas de esa labor, en el orden en que estén aquí — usa las flechas ◀ ▶ para ordenarlos.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+            <div style={S.switchModo}>
+              <button style={{ ...S.switchBtn, ...(tipoParams === "pauta" ? S.switchActivo : {}) }}
+                onClick={() => setTipoParams("pauta")}>Pauta</button>
+              <button style={{ ...S.switchBtn, ...(tipoParams === "ev" ? S.switchActivoReal : {}) }}
+                onClick={() => setTipoParams("ev")}>Ev. de calidad</button>
+            </div>
+            <select style={S.select} value={laborParams} onChange={e => setLaborParams(e.target.value)}>
+              {LABORES.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+            <input type="text" style={{ ...S.inputFecha, minWidth: 190 }} value={nuevoParam}
+              placeholder={tipoParams === "pauta" ? "Ej: N° de cargadores a dejar" : "Ej: PROM CARGADORES"}
+              onChange={e => setNuevoParam(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") agregarParam(); }} />
+            <button style={S.btnPrimario} onClick={agregarParam}>Agregar</button>
+          </div>
+          <div style={S.chipsLabores}>
+            {(paramsActuales[laborParams] || []).length === 0
+              ? <span style={{ fontSize: 12.5, color: "#8a8f85", fontStyle: "italic" }}>Sin parámetros de {tipoParams === "pauta" ? "pauta" : "evaluación"} para esta labor todavía.</span>
+              : (paramsActuales[laborParams] || []).map((param, i, arr) => (
+                  <span key={param} style={S.chipLabor}>
+                    <button style={{ ...S.chipMover, opacity: i === 0 ? 0.25 : 1 }}
+                      onClick={() => moverParam(param, -1)} disabled={i === 0} title="Mover antes">◀</button>
+                    {param}
+                    <button style={{ ...S.chipMover, opacity: i === arr.length - 1 ? 0.25 : 1 }}
+                      onClick={() => moverParam(param, 1)} disabled={i === arr.length - 1} title="Mover después">▶</button>
+                    <button style={S.chipQuitar} onClick={() => quitarParam(param)} title="Quitar parámetro">✕</button>
+                  </span>
+                ))}
+          </div>
+        </div>
+      )}
+
+      {visibles.length === 0 && (
+        <p style={S.vacio}>No hay pautas registradas con estos filtros. Crea una con el botón "+ Nueva pauta".</p>
+      )}
+
+      <div style={S.listaPautas}>
+        {visibles.map(p => {
+          const paramsPauta = paramsPautaDe(p.labor);
+          const paramsEv = paramsEvDe(p.labor);
+          const extrasPauta = Object.keys(p.pautaVal || {}).filter(k => !paramsPauta.includes(k) && p.pautaVal[k]);
+          const extrasEv = Object.keys(p.ev || {}).filter(k => !paramsEv.includes(k) && p.ev[k]);
+          const precio = { ...PRECIO_VACIO, ...(p.precio || {}) };
+          const abierta = expandida === p.id;
+          const resumenParams = paramsPauta.filter(k => (p.pautaVal || {})[k])
+            .map(k => `${k.replace(/^N° de\s*/i, "")}: ${p.pautaVal[k]}`).slice(0, 2).join(" · ");
+          const precioResumen = [precio.manana && `M: ${precio.manana}`, precio.tarde && `T: ${precio.tarde}`, precio.noche && `N: ${precio.noche}`]
+            .filter(Boolean).join(" · ");
+          const nEvLlenos = [...paramsEv, ...extrasEv].filter(k => (p.ev || {})[k]).length;
+          return (
+            <div key={p.id} style={{ ...S.filaPauta, ...(abierta ? S.filaPautaAbierta : {}) }}>
+              <button style={S.filaPautaHead} onClick={() => setExpandida(abierta ? null : p.id)}>
+                <span style={S.filaPautaFlecha}>{abierta ? "▾" : "▸"}</span>
+                <span style={S.filaPautaTitulo}>
+                  {nombreCortoLabor(p.labor).toUpperCase()}
+                  {p.lote ? <b> {p.lote}</b> : <span style={{ color: "#8a8f85", fontWeight: 400 }}> general</span>}
+                  {p.lote && fundoDe[p.lote] ? <span style={{ color: "#8a8f85", fontWeight: 400 }}> · {fundoDe[p.lote]}</span> : ""}
+                </span>
+                <span style={S.filaPautaResumen}>
+                  {resumenParams || (p.pauta ? p.pauta.split("\n")[0].slice(0, 40) : "sin pauta")}
+                </span>
+                <span style={S.filaPautaExtra}>
+                  {precioResumen && <span style={S.miniTagPrecio}>{precioResumen}</span>}
+                  {nEvLlenos > 0 && <span style={S.miniTagEv}>ev ✓</span>}
+                </span>
+              </button>
+
+              {abierta && (
+                <div style={S.detallePauta}>
+                  <div style={S.detalleCol}>
+                    <label style={S.pautaCampoLabel}>Pauta</label>
+                    {[...paramsPauta, ...extrasPauta].map(param => (
+                      <div key={param} style={S.evFila}>
+                        <span style={S.evNombre}>{param}</span>
+                        <input type="text" style={S.pautaValInput} placeholder="valor"
+                          defaultValue={(p.pautaVal || {})[param] || ""} key={`pv-${p.id}-${param}`}
+                          onBlur={e => onActualizar(p.id, { pautaVal: { ...(p.pautaVal || {}), [param]: e.target.value } })} />
+                      </div>
+                    ))}
+                    <textarea style={S.textareaPauta} rows={4} placeholder={"Indicaciones de corrido:\n• Instrucción 1\n• Instrucción 2"}
+                      defaultValue={p.pauta} key={`pa-${p.id}`}
+                      onBlur={e => onActualizar(p.id, { pauta: e.target.value })} />
+                  </div>
+
+                  <div style={S.detalleCol}>
+                    <label style={S.pautaCampoLabel}>Precio o tarea por turno</label>
+                    {TURNOS.map(([k, nombre]) => (
+                      <div key={k} style={S.evFila}>
+                        <span style={S.evNombre}>{nombre}</span>
+                        <input type="text" style={S.inputPrecioTurno} placeholder="precio o tarea"
+                          defaultValue={precio[k]} key={`pr-${p.id}-${k}`}
+                          onBlur={e => onActualizar(p.id, { precio: { ...precio, [k]: e.target.value } })} />
+                      </div>
+                    ))}
+
+                    <label style={{ ...S.pautaCampoLabel, color: "#8a6508", marginTop: 8 }}>Ev. de calidad</label>
+                    {paramsEv.length === 0 && extrasEv.length === 0 && (
+                      <div style={S.evVacia}>Sin parámetros. Agrégalos en "⚙ Parámetros".</div>
+                    )}
+                    {[...paramsEv, ...extrasEv].map(param => (
+                      <div key={param} style={S.evFila}>
+                        <span style={S.evNombre}>{param}</span>
+                        <input type="text" style={S.evInput} placeholder="resultado real"
+                          defaultValue={(p.ev || {})[param] || ""} key={`ev-${p.id}-${param}`}
+                          onBlur={e => onActualizar(p.id, { ev: { ...(p.ev || {}), [param]: e.target.value } })} />
+                      </div>
+                    ))}
+
+                    <div style={{ marginTop: 10, textAlign: "right" }}>
+                      <button style={S.btnEliminarTexto}
+                        onClick={() => { if (confirm("¿Eliminar esta pauta?")) onEliminar(p.id); }}>
+                        Eliminar pauta
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============ SECCIÓN MATERIALES ============
+function SeccionMateriales({ materiales, onCrear, onActualizar, onEliminar }) {
+  const [filtroLabor, setFiltroLabor] = useState("todas");
+
+  const agregarLabor = (m, lab) => {
+    if (!lab || (m.labores || []).includes(lab)) return;
+    onActualizar(m.id, { labores: [...(m.labores || []), lab] });
+  };
+  const quitarLabor = (m, lab) => {
+    onActualizar(m.id, { labores: (m.labores || []).filter(x => x !== lab) });
+  };
+
+  const visibles = filtroLabor === "todas"
+    ? materiales
+    : materiales.filter(m => (m.labores || []).includes(filtroLabor));
+  const epps = visibles.filter(m => m.tipo === "EPP");
+  const insumos = visibles.filter(m => m.tipo !== "EPP");
+
+  const Fila = ({ m }) => (
+    <tr>
+      <td style={S.tdMat}>
+        <input type="text" style={S.inputMat} placeholder="Nombre" defaultValue={m.nombre} key={`n-${m.id}`}
+          onBlur={e => onActualizar(m.id, { nombre: e.target.value })} />
+      </td>
+      <td style={S.tdMat}>
+        <select style={S.inputMat} value={m.tipo} onChange={e => onActualizar(m.id, { tipo: e.target.value })}>
+          <option value="EPP">EPP</option>
+          <option value="Insumo">Insumo</option>
+        </select>
+      </td>
+      <td style={S.tdMat}>
+        <input type="text" style={S.inputMat} placeholder="unidad, kg, par…" defaultValue={m.unidad} key={`u-${m.id}`}
+          onBlur={e => onActualizar(m.id, { unidad: e.target.value })} />
+      </td>
+      <td style={S.tdMat}>
+        {m.tipo === "EPP"
+          ? <input type="number" style={S.inputMat} placeholder="días" defaultValue={m.duracionDias} key={`d-${m.id}`}
+              onBlur={e => onActualizar(m.id, { duracionDias: e.target.value })} />
+          : <span style={S.matNoAplica}>—</span>}
+      </td>
+      <td style={S.tdMat}>
+        {m.tipo !== "EPP"
+          ? <input type="number" step="0.01" style={S.inputMat} placeholder="cant./ha" defaultValue={m.cantidadHa} key={`c-${m.id}`}
+              onBlur={e => onActualizar(m.id, { cantidadHa: e.target.value })} />
+          : <span style={S.matNoAplica}>—</span>}
+      </td>
+      <td style={{ ...S.tdMat, minWidth: 200 }}>
+        <div style={S.chipsLabores}>
+          {(m.labores || []).map(lab => (
+            <span key={lab} style={S.chipLabor}>
+              {nombreCortoLabor(lab)}
+              <button style={S.chipQuitar} onClick={() => quitarLabor(m, lab)} title="Quitar labor">✕</button>
+            </span>
+          ))}
+          <select style={S.selectAgregarLabor} value=""
+            onChange={e => agregarLabor(m, e.target.value)}>
+            <option value="">+ labor</option>
+            {LABORES.filter(l => !(m.labores || []).includes(l))
+              .map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </div>
+      </td>
+      <td style={{ ...S.tdMat, textAlign: "center" }}>
+        <button style={S.btnEliminar}
+          onClick={() => { if (confirm("¿Eliminar este material?")) onEliminar(m.id); }} title="Eliminar">✕</button>
+      </td>
+    </tr>
+  );
+
+  const Tabla = ({ titulo, items, nota }) => (
+    <section style={{ marginBottom: 28 }}>
+      <h2 style={S.subtitulo}>{titulo}</h2>
+      {nota && <p style={S.notaMat}>{nota}</p>}
+      <div style={S.tablaWrap}>
+        <table style={{ ...S.tabla, width: "100%", minWidth: 760 }}>
+          <thead>
+            <tr>
+              <th style={{ ...S.th, textAlign: "left", paddingLeft: 12 }}>Material</th>
+              <th style={S.th}>Tipo</th>
+              <th style={S.th}>Unidad de medida</th>
+              <th style={S.th}>Duración (días)</th>
+              <th style={S.th}>Cantidad / ha</th>
+              <th style={S.th}>Labores donde se usa</th>
+              <th style={S.th}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map(m => <Fila key={m.id} m={m} />)}
+            {items.length === 0 && (
+              <tr><td colSpan={7} style={{ ...S.tdMat, textAlign: "center", color: "#8a8f85", padding: 16 }}>
+                Sin registros{filtroLabor !== "todas" ? " para esta labor" : ""}
+              </td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        <button style={S.btnPrimario} onClick={onCrear}>+ Nuevo material</button>
+        <select style={S.select} value={filtroLabor} onChange={e => setFiltroLabor(e.target.value)}>
+          <option value="todas">Todas las labores</option>
+          {LABORES.map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
+        {filtroLabor !== "todas" && (
+          <span style={{ fontSize: 12.5, color: "#6b7565" }}>
+            Mostrando materiales usados en {nombreCortoLabor(filtroLabor)}
+          </span>
+        )}
+      </div>
+      <Tabla titulo="EPPs" items={epps}
+        nota="Equipos de protección personal. La duración indica cada cuántos días se cambia. Asigna en qué labores se usa cada uno." />
+      <Tabla titulo="Insumos y materiales" items={insumos}
+        nota="Amarra, junco, ligapal, etc. La cantidad por hectárea sirve para calcular necesidades por lote. Un mismo material puede usarse en varias labores." />
+    </div>
+  );
+}
+
+// ============ SUBCOMPONENTES ============
+function Card({ titulo, valor, tono }) {
+  const colores = { rojo: "#b3261e", ambar: "#b8860b", verde: "#2e7d4f", uva: "#6b3fa0" };
+  return (
+    <div style={S.card}>
+      <div style={{ ...S.cardValor, color: colores[tono] }}>{valor}</div>
+      <div style={S.cardTitulo}>{titulo}</div>
+    </div>
+  );
+}
+
+function Chip({ color, texto }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#4a5546" }}>
+      <span style={{ width: 10, height: 10, borderRadius: 3, background: color, display: "inline-block" }} />
+      {texto}
+    </span>
+  );
+}
+
+function ListaLabores({ items, tono, onClick }) {
+  const color = tono === "rojo" ? "#b3261e" : "#b8860b";
+  return (
+    <div style={S.lista}>
+      {items.map((it, i) => (
+        <button key={i} style={S.listaItem} onClick={() => onClick(it)}>
+          <span style={{ ...S.listaDias, color }}>
+            {it.dias < 0 ? `${Math.abs(it.dias)} d atraso` : it.dias === 0 ? "HOY" : `en ${it.dias} d`}
+          </span>
+          <span style={S.listaLote}>{it.lote}</span>
+          <span style={S.listaLabor}>{nombreCortoLabor(it.labor)}</span>
+          <span style={S.listaFecha}>{fmtCorta(it.fecha)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Filtros({ filtroFundo, setFiltroFundo, filtroVariedad, setFiltroVariedad, lotes }) {
+  const variedades = [...new Set(lotes.map(l => l.variedad))].sort();
+  return (
+    <div style={S.filtros}>
+      <select style={S.select} value={filtroFundo} onChange={e => setFiltroFundo(e.target.value)}>
+        <option value="todos">Ambos fundos</option>
+        <option value="LG">Fundo LG</option>
+        <option value="AP">Fundo AP</option>
+      </select>
+      <select style={S.select} value={filtroVariedad} onChange={e => setFiltroVariedad(e.target.value)}>
+        <option value="todas">Todas las variedades</option>
+        {variedades.map(v => <option key={v} value={v}>{v}</option>)}
+      </select>
+    </div>
+  );
+}
+
+// ============ DETALLE DE LOTE ============
+function DetalleLote({ lote, fechas, reales, onCerrar, onActualizar, onFechaReal }) {
+  const [borradores, setBorradores] = useState({});
+  const cia = lote.cianamida;
+  const ddc = cia ? diffDias(hoy(), cia) : null;
+  const esEspecial = LOTES_ESPECIALES.includes(lote.lote);
+
+  const aplicarFormula = (lab, texto) => {
+    const n = parseInt(String(texto).replace(/\s/g, ""), 10);
+    if (!isNaN(n)) {
+      onActualizar(lote.lote, {
+        formulas: { ...lote.formulas, [lab]: { ...lote.formulas[lab], dias: n } }
+      });
+    }
+    setBorradores(b => { const c = { ...b }; delete c[lab]; return c; });
+  };
+
+  const cambiarFechaProg = (lab, nueva) => {
+    if (!nueva) return;
+    if (lab === "19. Cosecha") {
+      if (cia) onActualizar(lote.lote, { fenologia: diffDias(nueva, cia) });
+      return;
+    }
+    const fo = lote.formulas[lab];
+    if (!fo) return;
+    const fechaBase = fo.base === "CIANAMIDA" ? cia : fo.base === "1.PODA" ? lote.poda : fechas[fo.base];
+    if (fechaBase) {
+      onActualizar(lote.lote, {
+        formulas: { ...lote.formulas, [lab]: { ...fo, dias: diffDias(nueva, fechaBase) } }
+      });
+    }
+  };
+
+  const textoFormula = (lab) => {
+    if (lab === "19. Cosecha") return "CIA + FEN";
+    const fo = lote.formulas[lab];
+    if (!fo) return "";
+    return ABREV[fo.base] || fo.base;
+  };
+
+  const excluidas = lote.excluidas || [];
+  const toggleExcluida = (lab) => {
+    const nuevas = excluidas.includes(lab)
+      ? excluidas.filter(x => x !== lab)
+      : [...excluidas, lab];
+    onActualizar(lote.lote, { excluidas: nuevas });
+  };
+
+  return (
+    <div style={S.modalFondo} onClick={onCerrar}>
+      <div style={S.modal} onClick={e => e.stopPropagation()}>
+        <div style={S.modalHead}>
+          <div>
+            <h2 style={S.modalTitulo}>Lote {lote.lote} {esEspecial && <span style={S.tagEspecial}>fórmulas +10 d</span>}</h2>
+            <div style={S.modalSub}>
+              Fundo {lote.fundo} · {lote.variedad} · {lote.area} ha
+              {ddc !== null && <> · <b>DDC {ddc}</b></>}
+            </div>
+          </div>
+          <button style={S.btnCerrar} onClick={onCerrar}>✕</button>
+        </div>
+
+        <div style={S.manualBox}>
+          <div style={S.manualTitulo}>Datos manuales — de aquí se calcula todo lo demás</div>
+          <div style={S.manualGrid}>
+            <label style={S.manualCampo}>
+              <span style={S.manualLabel}>Fecha de poda</span>
+              <input type="date" style={S.inputFecha} value={lote.poda || ""}
+                onChange={e => onActualizar(lote.lote, { poda: e.target.value || null })} />
+            </label>
+            <label style={S.manualCampo}>
+              <span style={S.manualLabel}>Fecha de cianamida</span>
+              <input type="date" style={S.inputFecha} value={lote.cianamida || ""}
+                onChange={e => onActualizar(lote.lote, { cianamida: e.target.value || null })} />
+            </label>
+            <label style={S.manualCampo}>
+              <span style={S.manualLabel}>Fenología (días)</span>
+              <input type="number" style={{ ...S.inputFecha, width: 90 }} value={lote.fenologia || ""}
+                onChange={e => {
+                  const n = parseInt(e.target.value, 10);
+                  if (!isNaN(n)) onActualizar(lote.lote, { fenologia: n });
+                }} />
+            </label>
+          </div>
+          {!cia && <div style={S.manualAviso}>Ingresa la fecha de cianamida para que se calculen las fechas.</div>}
+        </div>
+
+        <div style={S.laboresLista}>
+          <div style={{ ...S.laborFila, background: "transparent", border: "none", padding: "0 10px" }}>
+            <span />
+            <span style={S.colTitulo}>Labor</span>
+            <div style={{ display: "flex", gap: 6 }}>
+              <span style={{ ...S.colTitulo, width: 100, textAlign: "center" }}>Fórmula</span>
+              <span style={{ ...S.colTitulo, width: 122 }}>Programada</span>
+              <span style={{ ...S.colTitulo, width: 122, color: "#2e7d4f" }}>Real</span>
+            </div>
+          </div>
+          {LABORES.map(lab => {
+            const esManual = MANUALES.includes(lab);
+            const esCosecha = lab === "19. Cosecha";
+            const excluida = excluidas.includes(lab);
+            if (excluida) return (
+              <div key={lab} style={{ ...S.laborFila, background: "#f4f3ec", opacity: 0.75 }}>
+                <span />
+                <div style={S.laborNombre}>
+                  <span style={{ color: "#8a8f85", textDecoration: "line-through" }}>{lab}</span>
+                  <span style={S.tagNoAplica}>no aplica en este lote</span>
+                </div>
+                <button style={S.btnReactivar} onClick={() => toggleExcluida(lab)}
+                  title="Volver a incluir esta labor en el lote">
+                  Reactivar
+                </button>
+              </div>
+            );
+            const prog = fechas[lab];
+            const real = reales[`${lote.lote}|${lab}`];
+            const est = estadoLabor(prog, real);
+            const fo = lote.formulas[lab];
+            const diasActual = esCosecha ? lote.fenologia : fo ? fo.dias : "";
+            const valor = borradores[lab] !== undefined ? borradores[lab]
+              : diasActual === "" ? "" : (diasActual > 0 ? `+${diasActual}` : `${diasActual}`);
+            const desv = real && prog ? diffDias(real, prog) : null;
+            return (
+              <div key={lab} style={{ ...S.laborFila, ...(est === "vencida" ? { background: "#fdf1f0" } : {}), ...(esManual ? S.filaManual : {}) }}>
+                <label style={S.laborCheck}>
+                  <input type="checkbox" checked={!!real} disabled={!prog}
+                    title="Marcar como hecha (registra hoy como fecha real)"
+                    onChange={() => onFechaReal(lote.lote, lab, real ? null : hoy())} />
+                </label>
+                <div style={S.laborNombre}>
+                  <span style={real ? { textDecoration: "line-through", color: "#8a8f85" } : {}}>{lab}</span>
+                  {esManual && <span style={S.tagAncla}>manual</span>}
+                  {est === "vencida" && <span style={S.tagVencida}>vencida</span>}
+                  {est === "proxima" && <span style={S.tagProxima}>próxima</span>}
+                  {desv !== null && desv !== 0 && (
+                    <span style={desv > 0 ? S.tagProxima : S.tagHecha}>{desv > 0 ? `+${desv} d tarde` : `${Math.abs(desv)} d antes`}</span>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {esManual
+                    ? <span style={S.formulaFija}>manual</span>
+                    : <div style={S.formulaWrap}>
+                        <span style={S.formulaBase}>{textoFormula(lab)}</span>
+                        <input type="text" inputMode="numeric" style={S.inputFormula}
+                          value={valor}
+                          disabled={esCosecha ? !cia : !fo}
+                          title={esCosecha ? "Fenología (días de cianamida a cosecha)" : `Días respecto a ${textoFormula(lab)}`}
+                          onChange={e => setBorradores(b => ({ ...b, [lab]: e.target.value }))}
+                          onBlur={e => {
+                            if (esCosecha) {
+                              const n = parseInt(String(e.target.value).replace(/\s/g, ""), 10);
+                              if (!isNaN(n)) onActualizar(lote.lote, { fenologia: n });
+                              setBorradores(b => { const c = { ...b }; delete c[lab]; return c; });
+                            } else aplicarFormula(lab, e.target.value);
+                          }}
+                          onKeyDown={e => { if (e.key === "Enter") e.target.blur(); }} />
+                      </div>}
+                  {esManual
+                    ? <input type="date" style={S.inputFechaMini} value={prog || ""}
+                        onChange={e => onActualizar(lote.lote,
+                          lab === "1.PODA" ? { poda: e.target.value || null } : { cianamida: e.target.value || null })} />
+                    : <input type="date" style={S.inputFechaMini} value={prog || ""}
+                        onChange={e => cambiarFechaProg(lab, e.target.value)} />}
+                  <input type="date" style={{ ...S.inputFechaMini, borderColor: "#bcd8c4", background: real ? "#f0f8f2" : "#fff" }}
+                    value={real || ""}
+                    title="Fecha real en que se hizo la labor"
+                    onChange={e => onFechaReal(lote.lote, lab, e.target.value || null)} />
+                  {!esManual
+                    ? <button style={S.btnQuitar} onClick={() => toggleExcluida(lab)}
+                        title="Esta labor no se hace en este lote — quitarla del cronograma">✕</button>
+                    : <span style={{ width: 26 }} />}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={S.notaPie}>
+          <b>Programada</b> se calcula con la fórmula (bases: <b>CIA</b> cianamida, <b>PODA</b>, <b>RAC</b> a. racimos,
+          <b> DES</b> deshuville, <b>COS</b> cosecha, <b>FEN</b> fenología); cambia el número o la fecha y todo se recalcula.
+          <b> Real</b> es la fecha en que efectivamente se hizo: regístrala con el calendario verde o marca el check para poner hoy.
+          Si una labor no se hace en este lote, quítala con la <b>✕</b> — aparecerá como "n/a" en el cronograma y no
+          contará en alertas ni avances. Puedes reactivarla cuando quieras.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ ESTILOS ============
+const VERDE_OSCURO = "#22381f";
+const UVA = "#6b3fa0";
+const PAPEL = "#f6f5ef";
+const LINEA = "#dcdad0";
+
+const S = {
+  app: { fontFamily: "'Archivo', system-ui, sans-serif", background: PAPEL, minHeight: "100vh", color: "#26302a", padding: "20px 16px 60px", maxWidth: 1280, margin: "0 auto" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12, marginBottom: 20, borderBottom: `3px solid ${VERDE_OSCURO}`, paddingBottom: 16 },
+  eyebrow: { fontSize: 11, letterSpacing: "0.14em", fontWeight: 700, color: UVA, marginBottom: 4 },
+  titulo: { fontFamily: "'Fraunces', Georgia, serif", fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 600, margin: 0, color: VERDE_OSCURO, lineHeight: 1.05 },
+  headerStats: { fontSize: 14, color: "#4a5546", display: "flex", gap: 8, alignItems: "center" },
+  dot: { color: "#b5b3a6" },
+  btnRecargar: { background: "#fff", border: `1px solid ${LINEA}`, borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, color: "#2e7d4f", cursor: "pointer", fontFamily: "inherit" },
+  errorBar: { background: "#fbe9e7", border: "1px solid #efb8b2", color: "#8a2620", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginBottom: 16, fontWeight: 600 },
+  tabs: { display: "flex", gap: 6, alignItems: "center", marginBottom: 20, flexWrap: "wrap" },
+  tab: { padding: "8px 16px", borderRadius: 20, border: `1px solid ${LINEA}`, background: "#fff", fontSize: 13.5, fontWeight: 600, color: "#4a5546", cursor: "pointer", fontFamily: "inherit" },
+  tabActiva: { background: VERDE_OSCURO, color: "#fff", borderColor: VERDE_OSCURO },
+  guardando: { fontSize: 12, color: "#8a8f85" },
+  cards: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 20 },
+  card: { background: "#fff", border: `1px solid ${LINEA}`, borderRadius: 12, padding: "16px 18px" },
+  cardValor: { fontFamily: "'Fraunces', Georgia, serif", fontSize: 32, fontWeight: 600, lineHeight: 1 },
+  cardTitulo: { fontSize: 12.5, color: "#6b7565", marginTop: 6 },
+  aviso: { background: "#f3edfa", border: `1px solid #d9c9ee`, borderRadius: 10, padding: "12px 16px", fontSize: 13.5, color: "#4a3568", marginBottom: 20, lineHeight: 1.5 },
+  dosColumnas: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 },
+  subtitulo: { fontFamily: "'Fraunces', Georgia, serif", fontSize: 19, fontWeight: 600, color: VERDE_OSCURO, margin: "0 0 10px" },
+  vacio: { fontSize: 13.5, color: "#8a8f85", fontStyle: "italic" },
+  lista: { display: "flex", flexDirection: "column", gap: 6 },
+  listaItem: { display: "grid", gridTemplateColumns: "86px 46px 1fr auto", gap: 10, alignItems: "center", background: "#fff", border: `1px solid ${LINEA}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
+  listaDias: { fontWeight: 700, fontSize: 12 },
+  listaLote: { fontWeight: 700, color: VERDE_OSCURO },
+  listaLabor: { color: "#4a5546", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  listaFecha: { color: "#8a8f85", fontSize: 12 },
+  filtros: { display: "flex", gap: 8, flexWrap: "wrap" },
+  select: { padding: "8px 12px", borderRadius: 8, border: `1px solid ${LINEA}`, background: "#fff", fontSize: 13.5, fontFamily: "inherit", color: "#26302a" },
+  switchModo: { display: "flex", border: `1.5px solid ${VERDE_OSCURO}`, borderRadius: 10, overflow: "hidden" },
+  switchBtn: { padding: "8px 18px", border: "none", background: "#fff", fontSize: 13.5, fontWeight: 700, color: "#4a5546", cursor: "pointer", fontFamily: "inherit" },
+  switchActivo: { background: VERDE_OSCURO, color: "#fff" },
+  switchActivoReal: { background: "#2e7d4f", color: "#fff" },
+  leyenda: { display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" },
+  tablaWrap: { overflowX: "auto", border: `1px solid ${LINEA}`, borderRadius: 10, background: "#fff", WebkitOverflowScrolling: "touch" },
+  tabla: { borderCollapse: "collapse", fontSize: 12, minWidth: 900 },
+  th: { padding: "8px 6px", background: VERDE_OSCURO, color: "#e8ede4", fontWeight: 600, fontSize: 10.5, textAlign: "center", whiteSpace: "nowrap", maxWidth: 74, overflow: "hidden", textOverflow: "ellipsis", position: "sticky", top: 0 },
+  thFijo: { position: "sticky", left: 0, zIndex: 3, textAlign: "left", paddingLeft: 12, minWidth: 110 },
+  td: { padding: "6px", borderBottom: `1px solid #eceae1`, textAlign: "center", whiteSpace: "nowrap", cursor: "pointer" },
+  tdFijo: { position: "sticky", left: 0, background: "#fff", textAlign: "left", paddingLeft: 12, borderRight: `1px solid ${LINEA}`, zIndex: 2 },
+  tdSub: { fontSize: 10, color: "#8a8f85" },
+  celda: {
+    "completada": { background: "#e5f2e9", color: "#2e7d4f", fontWeight: 600 },
+    "vencida": { background: "#fbe9e7", color: "#b3261e", fontWeight: 600 },
+    "proxima": { background: "#fbf3dd", color: "#8a6508", fontWeight: 600 },
+    "pendiente": { color: "#4a5546" },
+    "sin-fecha": { color: "#c8c6ba" }
+  },
+  gridLotes: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(215px, 1fr))", gap: 12, marginTop: 14 },
+  cardLote: { background: "#fff", border: `1px solid ${LINEA}`, borderRadius: 12, padding: 16, textAlign: "left", cursor: "pointer", fontFamily: "inherit" },
+  cardLoteTop: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+  loteNombre: { fontFamily: "'Fraunces', Georgia, serif", fontSize: 21, fontWeight: 600, color: VERDE_OSCURO },
+  badgeVar: { background: "#f3edfa", color: UVA, fontSize: 11.5, fontWeight: 700, padding: "3px 9px", borderRadius: 12 },
+  cardLoteInfo: { fontSize: 12.5, color: "#6b7565", marginBottom: 10 },
+  cardLoteAlerta: { fontSize: 12, color: UVA, fontWeight: 600, background: "#f3edfa", borderRadius: 6, padding: "6px 8px" },
+  cardLoteProg: { position: "relative", background: "#eef0e9", borderRadius: 6, height: 22, overflow: "hidden" },
+  barra: { position: "absolute", left: 0, top: 0, bottom: 0, background: "#bfd9c6" },
+  barraTxt: { position: "relative", fontSize: 11, fontWeight: 600, color: "#3a4a3c", padding: "4px 8px", display: "block" },
+  btnPrimario: { background: VERDE_OSCURO, color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+  btnSecundario: { background: "transparent", color: "#8a8f85", border: `1px solid ${LINEA}`, borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" },
+  btnEliminar: { background: "#fff", border: `1px solid ${LINEA}`, borderRadius: 8, width: 30, height: 30, fontSize: 13, cursor: "pointer", color: "#a83232", flexShrink: 0 },
+  // Pautas
+  listaPautas: { display: "flex", flexDirection: "column", gap: 6 },
+  filaPauta: { background: "#fff", border: `1px solid ${LINEA}`, borderRadius: 10, overflow: "hidden" },
+  filaPautaAbierta: { border: `1.5px solid ${VERDE_OSCURO}` },
+  filaPautaHead: { display: "grid", gridTemplateColumns: "18px minmax(130px, auto) 1fr auto", gap: 10, alignItems: "center", width: "100%", padding: "10px 12px", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" },
+  filaPautaFlecha: { color: "#8a8f85", fontSize: 11 },
+  filaPautaTitulo: { fontFamily: "'Fraunces', Georgia, serif", fontSize: 14.5, fontWeight: 600, color: VERDE_OSCURO, whiteSpace: "nowrap" },
+  filaPautaResumen: { fontSize: 12, color: "#6b7565", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  filaPautaExtra: { display: "flex", gap: 6, alignItems: "center" },
+  miniTagPrecio: { fontSize: 10.5, fontWeight: 700, color: UVA, background: "#f3edfa", padding: "2px 8px", borderRadius: 8, whiteSpace: "nowrap" },
+  miniTagEv: { fontSize: 10.5, fontWeight: 700, color: "#8a6508", background: "#fbf3dd", padding: "2px 8px", borderRadius: 8 },
+  detallePauta: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, padding: "4px 14px 14px", borderTop: `1px solid #eceae1` },
+  detalleCol: { display: "flex", flexDirection: "column", gap: 5, paddingTop: 10 },
+  btnEliminarTexto: { background: "transparent", border: "none", color: "#a83232", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" },
+  formNueva: { background: "#f3edfa", border: `1.5px solid #d9c9ee`, borderRadius: 12, padding: 14, marginBottom: 14 },
+  textareaPauta: { width: "100%", padding: "7px 9px", borderRadius: 7, border: `1px solid ${LINEA}`, fontSize: 12.5, fontFamily: "inherit", lineHeight: 1.5, resize: "vertical", background: "#fdfdfb" },
+  pautaCampoLabel: { fontSize: 9.5, fontWeight: 700, letterSpacing: "0.06em", color: UVA, textTransform: "uppercase", marginTop: 2 },
+  evFila: { display: "grid", gridTemplateColumns: "1fr 110px", gap: 6, alignItems: "center" },
+  evNombre: { fontSize: 11.5, color: "#5a5546", lineHeight: 1.3 },
+  evInput: { padding: "5px 8px", borderRadius: 6, border: `1px solid #e8d9a8`, fontSize: 12, fontFamily: "inherit", background: "#fdf9ee", fontWeight: 600 },
+  evVacia: { fontSize: 11.5, color: "#8a8f85", fontStyle: "italic", background: "#fdf9ee", borderRadius: 6, padding: "6px 8px" },
+  pautaValInput: { padding: "5px 8px", borderRadius: 6, border: `1px solid ${LINEA}`, fontSize: 12, fontFamily: "inherit", background: "#fdfdfb", fontWeight: 600 },
+  inputPrecioTurno: { padding: "5px 8px", borderRadius: 6, border: `1px solid #d9c9ee`, fontSize: 12, fontFamily: "inherit", background: "#faf7fd", fontWeight: 600 },
+  // Materiales
+  tdMat: { padding: "6px 8px", borderBottom: `1px solid #eceae1` },
+  inputMat: { width: "100%", minWidth: 80, padding: "7px 9px", borderRadius: 6, border: `1px solid ${LINEA}`, fontSize: 13, fontFamily: "inherit", background: "#fff" },
+  matNoAplica: { display: "block", textAlign: "center", color: "#c8c6ba" },
+  notaMat: { fontSize: 12.5, color: "#6b7565", margin: "0 0 8px" },
+  chipsLabores: { display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" },
+  chipLabor: { display: "inline-flex", alignItems: "center", gap: 4, background: "#f3edfa", color: UVA, fontSize: 11, fontWeight: 700, padding: "3px 4px 3px 8px", borderRadius: 10 },
+  chipQuitar: { background: "transparent", border: "none", color: UVA, fontSize: 10, cursor: "pointer", padding: "0 3px", lineHeight: 1 },
+  chipMover: { background: "transparent", border: "none", color: UVA, fontSize: 8, cursor: "pointer", padding: "0 2px", lineHeight: 1 },
+  selectAgregarLabor: { padding: "4px 6px", borderRadius: 8, border: `1px dashed ${LINEA}`, background: "#fff", fontSize: 11, fontFamily: "inherit", color: "#8a8f85", cursor: "pointer", maxWidth: 90 },
+  // Modal
+  modalFondo: { position: "fixed", inset: 0, background: "rgba(24,32,22,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 100 },
+  modal: { background: PAPEL, borderRadius: 16, maxWidth: 760, width: "100%", maxHeight: "88vh", overflowY: "auto", padding: 22 },
+  modalHead: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
+  modalTitulo: { fontFamily: "'Fraunces', Georgia, serif", fontSize: 26, fontWeight: 600, color: VERDE_OSCURO, margin: 0, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" },
+  modalSub: { fontSize: 13, color: "#6b7565", marginTop: 4 },
+  btnCerrar: { background: "#fff", border: `1px solid ${LINEA}`, borderRadius: "50%", width: 34, height: 34, fontSize: 15, cursor: "pointer", color: "#4a5546", flexShrink: 0 },
+  tagEspecial: { fontSize: 11, fontWeight: 700, color: "#8a6508", background: "#fbf3dd", padding: "3px 9px", borderRadius: 10 },
+  manualBox: { background: "#f3edfa", border: `1.5px solid #d9c9ee`, borderRadius: 12, padding: 14, marginBottom: 16 },
+  manualTitulo: { fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", color: UVA, textTransform: "uppercase", marginBottom: 10 },
+  manualGrid: { display: "flex", gap: 14, flexWrap: "wrap" },
+  manualCampo: { display: "flex", flexDirection: "column", gap: 4 },
+  manualLabel: { fontSize: 12, fontWeight: 600, color: "#4a3568" },
+  manualAviso: { fontSize: 12.5, color: "#8a6508", background: "#fbf3dd", borderRadius: 6, padding: "6px 10px", marginTop: 10 },
+  inputFecha: { padding: "8px 10px", borderRadius: 8, border: `1px solid #cbb8e4`, fontSize: 14, fontFamily: "inherit", background: "#fff" },
+  inputFechaMini: { padding: "5px 7px", borderRadius: 6, border: `1px solid ${LINEA}`, fontSize: 12, fontFamily: "inherit", width: 122 },
+  laboresLista: { display: "flex", flexDirection: "column", gap: 4 },
+  laborFila: { display: "grid", gridTemplateColumns: "30px 1fr auto", gap: 8, alignItems: "center", background: "#fff", border: `1px solid #eceae1`, borderRadius: 8, padding: "7px 10px" },
+  filaManual: { border: "1.5px solid #cbb8e4", background: "#faf7fd" },
+  laborCheck: { display: "flex", alignItems: "center", justifyContent: "center" },
+  laborNombre: { fontSize: 13, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" },
+  tagVencida: { fontSize: 10.5, fontWeight: 700, color: "#b3261e", background: "#fbe9e7", padding: "2px 7px", borderRadius: 8 },
+  tagProxima: { fontSize: 10.5, fontWeight: 700, color: "#8a6508", background: "#fbf3dd", padding: "2px 7px", borderRadius: 8 },
+  tagHecha: { fontSize: 10.5, fontWeight: 700, color: "#2e7d4f", background: "#e5f2e9", padding: "2px 7px", borderRadius: 8 },
+  tagAncla: { fontSize: 10.5, fontWeight: 700, color: UVA, background: "#f3edfa", padding: "2px 7px", borderRadius: 8 },
+  tagNoAplica: { fontSize: 10.5, fontWeight: 700, color: "#8a8f85", background: "#eceae1", padding: "2px 7px", borderRadius: 8 },
+  btnQuitar: { background: "transparent", border: `1px solid ${LINEA}`, borderRadius: 6, width: 26, height: 26, fontSize: 11, cursor: "pointer", color: "#a83232", flexShrink: 0, padding: 0 },
+  btnReactivar: { background: "#fff", border: `1px solid ${LINEA}`, borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "#2e7d4f", fontFamily: "inherit", justifySelf: "end" },
+  colTitulo: { fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: "#8a8f85", textTransform: "uppercase" },
+  formulaWrap: { display: "flex", alignItems: "center", gap: 4, width: 100, justifyContent: "flex-end" },
+  formulaBase: { fontSize: 10.5, fontWeight: 700, color: "#8a8f85" },
+  inputFormula: { width: 50, padding: "5px 5px", borderRadius: 6, border: "1.5px solid #cbb8e4", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", textAlign: "center", color: UVA, background: "#fff" },
+  formulaFija: { width: 100, textAlign: "center", fontSize: 11.5, fontWeight: 700, color: UVA },
+  notaPie: { fontSize: 12, color: "#6b7565", marginTop: 14, lineHeight: 1.6, background: "#eef0e9", borderRadius: 8, padding: "10px 12px" },
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<CronogramaUva />);
+
+// Registrar el service worker para que funcione como app instalable
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
