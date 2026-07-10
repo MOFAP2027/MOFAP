@@ -36,42 +36,56 @@ const { useState, useEffect, useMemo, useRef } = React;
 // (Supabase → Settings → API → Project URL y anon public key)
 // ================================================================
 const SUPABASE_URL = "https://nchajxjemhbrurbnotkm.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jaGFqeGplbWhicnVyYm5vdGttIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzYwNTc2NywiZXhwIjoyMDk5MTgxNzY3fQ.5edtikQeTO4JO2OsnNASP7qt0kkKveGKfJ0BMGE1S34";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jaGFqeGplbWhicnVyYm5vdGttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MDU3NjcsImV4cCI6MjA5OTE4MTc2N30.ZLoegYPoAhIXmeAOR1YFwuVk8iXiH8ZPegAo7wmJ7PQ";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============ USUARIOS (contraseña → identidad) ============
+const USUARIOS = {
+  "ap2627": { nombre: "JEFFERSON", fundo: "AP" },
+  "lg2627": { nombre: "TAMENDY", fundo: "LG" }
+};
+const SESION_KEY = "corrida-sesion";
+// La sesión de identidad se guarda en el navegador del equipo (una sola vez).
+// Solo dice quién es; NO es la clave de la base de datos.
+function leerSesion() {
+  try { return JSON.parse(localStorage.getItem(SESION_KEY) || "null"); } catch { return null; }
+}
+function guardarSesion(s) { localStorage.setItem(SESION_KEY, JSON.stringify(s)); }
+function borrarSesion() { localStorage.removeItem(SESION_KEY); }
 
 // ============ LABORES ============
 const LABORES = [
   "1.PODA", "CIANAMIDA", "2.AMARRE", "3.SARMENTEO", "4.T.PLASTICO", "5.A.PASADORES",
-  "6.CANOPIA 1", "7.CANOPIA 2", "9. J. FOLLAJERO", "8. CANOPIA 3", "10. A.RACIMOS",
-  "11. AJUSTE DE CARGA", "12. Raleo", "13. RECOJO DE PLASTICO", "14. desuville",
+  "6.CANOPIA 1", "7.CANOPIA 2", "9. J. FOLLAJERO", "10. A.RACIMOS", "11. AJUSTE DE CARGA",
+  "8. CANOPIA 3", "12. Raleo", "13. RECOJO DE PLASTICO", "14. desuville",
   "15. Colocado o Retiro de Gorros/Bolsa", "16. Canopia 4", "17. Canopia 5",
   "18. Pre Limpia", "19. Cosecha"
 ];
 const MANUALES = ["1.PODA", "CIANAMIDA"];
-const LOTES_ESPECIALES = ["A8", "A9", "A10", "A11", "G6"];
+// (Ya no hay lotes con fórmulas especiales: todos usan las mismas fórmulas)
 const ABREV = { "CIANAMIDA": "CIA", "1.PODA": "PODA", "10. A.RACIMOS": "RAC", "14. desuville": "DES", "19. Cosecha": "COS" };
 const PRECIO_VACIO = { manana: "", tarde: "", noche: "" };
 
 // ============ FÓRMULAS POR DEFECTO ============
-function formulasDefecto(esEspecial) {
+function formulasDefecto() {
   return {
-    "2.AMARRE":            { base: "1.PODA",        dias: 2 },
+    "2.AMARRE":            { base: "1.PODA",        dias: 1 },
     "3.SARMENTEO":         { base: "CIANAMIDA",     dias: 3 },
     "4.T.PLASTICO":        { base: "CIANAMIDA",     dias: 5 },
     "5.A.PASADORES":       { base: "CIANAMIDA",     dias: 5 },
-    "6.CANOPIA 1":         { base: "CIANAMIDA",     dias: esEspecial ? 45 : 35 },
-    "7.CANOPIA 2":         { base: "CIANAMIDA",     dias: esEspecial ? 60 : 50 },
-    "10. A.RACIMOS":       { base: "CIANAMIDA",     dias: 65 },
-    "8. CANOPIA 3":        { base: "10. A.RACIMOS", dias: -1 },
+    "6.CANOPIA 1":         { base: "CIANAMIDA",     dias: 35 },
+    "7.CANOPIA 2":         { base: "CIANAMIDA",     dias: 50 },
+    "10. A.RACIMOS":       { base: "CIANAMIDA",     dias: 55 },
     "9. J. FOLLAJERO":     { base: "10. A.RACIMOS", dias: -3 },
-    "11. AJUSTE DE CARGA": { base: "CIANAMIDA",     dias: esEspecial ? 75 : 65 },
-    "12. Raleo":           { base: "CIANAMIDA",     dias: esEspecial ? 90 : 80 },
+    "11. AJUSTE DE CARGA": { base: "CIANAMIDA",     dias: 75 },
+    "12. Raleo":           { base: "CIANAMIDA",     dias: 80 },
+    "8. CANOPIA 3":        { base: "12. Raleo",     dias: -3 },
     "13. RECOJO DE PLASTICO": { base: "CIANAMIDA",  dias: 100 },
-    "14. desuville":       { base: "CIANAMIDA",     dias: esEspecial ? 125 : 115 },
-    "15. Colocado o Retiro de Gorros/Bolsa": { base: "14. desuville", dias: -5 },
-    "16. Canopia 4":       { base: "14. desuville", dias: 5 },
-    "17. Canopia 5":       { base: "14. desuville", dias: 6 },
+    "14. desuville":       { base: "CIANAMIDA",     dias: 115 },
+    "15. Colocado o Retiro de Gorros/Bolsa": { base: "19. Cosecha", dias: -35 },
+    "16. Canopia 4":       { base: "19. Cosecha",   dias: -28 },
+    "17. Canopia 5":       { base: "19. Cosecha",   dias: -27 },
     "18. Pre Limpia":      { base: "19. Cosecha",   dias: -10 }
   };
 }
@@ -178,23 +192,14 @@ function computarFechas(l) {
 }
 
 function construirLote(base) {
-  const esp = LOTES_ESPECIALES.includes(base.lote);
-  const def = formulasDefecto(esp);
   const fechas = base.fechas || {};
   const poda = fechas["1.PODA"] || null;
   const cianamida = fechas["CIANAMIDA"] || null;
   let fenologia = base.fenologia || 190;
   if (cianamida && fechas["19. Cosecha"]) fenologia = diffDias(fechas["19. Cosecha"], cianamida);
-  const formulas = {};
-  Object.keys(def).forEach(lab => {
-    const fo = def[lab];
-    const fechaBase = fo.base === "CIANAMIDA" ? cianamida : fo.base === "1.PODA" ? poda : fechas[fo.base];
-    formulas[lab] = (fechas[lab] && fechaBase)
-      ? { base: fo.base, dias: diffDias(fechas[lab], fechaBase) }
-      : { ...fo };
-  });
-  if (formulas["2.AMARRE"]?.base !== "1.PODA") formulas["2.AMARRE"] = { base: "1.PODA", dias: 2 };
-  return { lote: base.lote, fundo: base.fundo, area: base.area, variedad: base.variedad, fenologia, poda, cianamida, formulas, excluidas: [] };
+  // Todos los lotes usan las mismas fórmulas estándar
+  return { lote: base.lote, fundo: base.fundo, area: base.area, variedad: base.variedad,
+    fenologia, poda, cianamida, formulas: { ...formulasDefecto() }, excluidas: [] };
 }
 
 function estadoLabor(fechaProg, fechaReal) {
@@ -207,17 +212,34 @@ function estadoLabor(fechaProg, fechaReal) {
 }
 
 // ============ CAPA DE BASE DE DATOS (SUPABASE) ============
+let USUARIO_ACTUAL = null; // { nombre, fundo } o null si es solo lectura
+
+function sello() {
+  return USUARIO_ACTUAL
+    ? { modificado_por: USUARIO_ACTUAL.nombre, modificado_en: new Date().toISOString() }
+    : {};
+}
+async function registrarBitacora(accion, detalle) {
+  if (!USUARIO_ACTUAL) return;
+  try {
+    await sb.from("corrida_bitacora").insert({
+      usuario: USUARIO_ACTUAL.nombre, fundo: USUARIO_ACTUAL.fundo, accion, detalle
+    });
+  } catch (e) { /* la bitácora no debe bloquear el guardado */ }
+}
+
 const db = {
   async cargarTodo() {
-    const [l, r, p, pr, m] = await Promise.all([
+    const [l, r, p, pr, m, b] = await Promise.all([
       sb.from("corrida_lotes").select("*"),
       sb.from("corrida_reales").select("*"),
       sb.from("corrida_pautas").select("*").order("created_at", { ascending: false }),
       sb.from("corrida_parametros").select("*"),
-      sb.from("corrida_materiales").select("*").order("created_at")
+      sb.from("corrida_materiales").select("*").order("created_at"),
+      sb.from("corrida_bitacora").select("*").order("creado_en", { ascending: false }).limit(60)
     ]);
     for (const res of [l, r, p, pr, m]) if (res.error) throw res.error;
-    return { lotes: l.data, reales: r.data, pautas: p.data, parametros: pr.data, materiales: m.data };
+    return { lotes: l.data, reales: r.data, pautas: p.data, parametros: pr.data, materiales: m.data, bitacora: b.data || [] };
   },
   async sembrarSiVacio(datos) {
     if (datos.lotes.length > 0) return false;
@@ -232,34 +254,53 @@ const db = {
     await sb.from("corrida_materiales").insert(MATERIALES_INICIALES);
     return true;
   },
-  guardarLote(l) {
-    return sb.from("corrida_lotes").upsert({
+  async guardarLote(l) {
+    const r = await sb.from("corrida_lotes").upsert({
       lote: l.lote, fundo: l.fundo, area: l.area, variedad: l.variedad,
       fenologia: l.fenologia, poda: l.poda, cianamida: l.cianamida,
-      formulas: l.formulas, excluidas: l.excluidas || [], updated_at: new Date().toISOString()
+      formulas: l.formulas, excluidas: l.excluidas || [], updated_at: new Date().toISOString(), ...sello()
     });
+    if (!r.error) registrarBitacora("Editó lote", `Lote ${l.lote} (${l.fundo})`);
+    return r;
   },
-  guardarReal(lote, labor, fecha) {
-    if (fecha) return sb.from("corrida_reales").upsert({ lote, labor, fecha }, { onConflict: "lote,labor" });
-    return sb.from("corrida_reales").delete().match({ lote, labor });
+  async guardarReal(lote, labor, fecha) {
+    let r;
+    if (fecha) r = await sb.from("corrida_reales").upsert({ lote, labor, fecha, ...sello() }, { onConflict: "lote,labor" });
+    else r = await sb.from("corrida_reales").delete().match({ lote, labor });
+    if (!r.error) registrarBitacora(fecha ? "Registró fecha real" : "Borró fecha real", `${lote} · ${labor}${fecha ? " → " + fecha : ""}`);
+    return r;
   },
-  guardarPauta(p) {
-    return sb.from("corrida_pautas").upsert({
+  async guardarPauta(p) {
+    const r = await sb.from("corrida_pautas").upsert({
       id: p.id, labor: p.labor, lote: p.lote || "",
-      pauta: p.pauta || "", pauta_val: p.pautaVal || {}, precio: p.precio || {}, ev: p.ev || {}
+      pauta: p.pauta || "", pauta_val: p.pautaVal || {}, precio: p.precio || {}, ev: p.ev || {}, ...sello()
     });
+    if (!r.error) registrarBitacora("Editó pauta", `${p.labor}${p.lote ? " " + p.lote : ""}`);
+    return r;
   },
-  eliminarPauta(id) { return sb.from("corrida_pautas").delete().eq("id", id); },
-  guardarParametros(tipo, labor, lista) {
-    return sb.from("corrida_parametros").upsert({ tipo, labor, lista }, { onConflict: "tipo,labor" });
+  async eliminarPauta(id) {
+    const r = await sb.from("corrida_pautas").delete().eq("id", id);
+    if (!r.error) registrarBitacora("Eliminó pauta", "");
+    return r;
   },
-  guardarMaterial(m) {
-    return sb.from("corrida_materiales").upsert({
+  async guardarParametros(tipo, labor, lista) {
+    const r = await sb.from("corrida_parametros").upsert({ tipo, labor, lista }, { onConflict: "tipo,labor" });
+    if (!r.error) registrarBitacora("Editó parámetros", `${tipo} · ${labor}`);
+    return r;
+  },
+  async guardarMaterial(m) {
+    const r = await sb.from("corrida_materiales").upsert({
       id: m.id, nombre: m.nombre || "", tipo: m.tipo || "Insumo", unidad: m.unidad || "",
-      duracion_dias: m.duracionDias || "", cantidad_ha: m.cantidadHa || "", labores: m.labores || []
+      duracion_dias: m.duracionDias || "", cantidad_ha: m.cantidadHa || "", labores: m.labores || [], ...sello()
     });
+    if (!r.error) registrarBitacora("Editó material", m.nombre || "");
+    return r;
   },
-  eliminarMaterial(id) { return sb.from("corrida_materiales").delete().eq("id", id); }
+  async eliminarMaterial(id) {
+    const r = await sb.from("corrida_materiales").delete().eq("id", id);
+    if (!r.error) registrarBitacora("Eliminó material", "");
+    return r;
+  }
 };
 
 // ============ COMPONENTE PRINCIPAL ============
@@ -278,6 +319,15 @@ function CronogramaUva() {
   const [loteAbierto, setLoteAbierto] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+  const [sesion, setSesion] = useState(leerSesion());
+  const [bitacora, setBitacora] = useState([]);
+  const [mostrarAcceso, setMostrarAcceso] = useState(false);
+
+  // Aplicar la identidad al módulo de base de datos
+  useEffect(() => {
+    USUARIO_ACTUAL = sesion ? { nombre: sesion.nombre, fundo: sesion.fundo } : null;
+  }, [sesion]);
+  const puedeEditar = !!sesion;
 
   const recargar = async () => {
     try {
@@ -305,6 +355,7 @@ function CronogramaUva() {
         id: f.id, nombre: f.nombre, tipo: f.tipo, unidad: f.unidad,
         duracionDias: f.duracion_dias || "", cantidadHa: f.cantidad_ha || "", labores: f.labores || []
       })));
+      setBitacora(datos.bitacora || []);
     } catch (e) {
       console.error(e);
       setError(SUPABASE_ANON_KEY.includes("PEGA_AQUI")
@@ -318,6 +369,7 @@ function CronogramaUva() {
 
   // Ejecuta una operación de guardado mostrando el estado
   const guardar = async (op) => {
+    if (!puedeEditar) { setMostrarAcceso(true); return; }
     setGuardando(true);
     try {
       const { error: err } = await op();
@@ -459,16 +511,20 @@ function CronogramaUva() {
           <h1 style={S.titulo}>Gestión de labores</h1>
         </div>
         <div style={S.headerStats}>
-          <span><b>{lotes.length}</b> lotes</span>
-          <span style={S.dot}>·</span>
-          <span><b>{areaTotal.toFixed(1)}</b> ha</span>
-          <span style={S.dot}>·</span>
-          <button style={S.btnRecargar} onClick={recargar} title="Traer los últimos datos de la base de datos">↻ Actualizar</button>
+          <span><b>{lotes.length}</b> lotes · <b>{areaTotal.toFixed(1)}</b> ha</span>
+          <button style={S.btnRecargar} onClick={recargar} title="Traer los últimos datos">↻ Actualizar</button>
+          {sesion
+            ? <span style={S.sesionBox}>
+                <span style={S.sesionNombre}>✎ {sesion.nombre}</span>
+                <span style={S.sesionFundo}>{sesion.fundo}</span>
+                <button style={S.btnSalir} onClick={() => { borrarSesion(); setSesion(null); }} title="Salir del modo edición">salir</button>
+              </span>
+            : <button style={S.btnEntrar} onClick={() => setMostrarAcceso(true)}>🔒 Solo lectura — ingresar</button>}
         </div>
       </header>
 
       <nav style={S.tabs}>
-        {[["panel","Panel"],["cronograma","Cronograma"],["lotes","Lotes"],["pautas","Pautas"],["materiales","Materiales"]].map(([id, nombre]) => (
+        {[["panel","Panel"],["cronograma","Cronograma"],["lotes","Lotes"],["pautas","Pautas"],["materiales","Materiales"],["bitacora","Bitácora"]].map(([id, nombre]) => (
           <button key={id} onClick={() => setVista(id)}
             style={{ ...S.tab, ...(vista === id ? S.tabActiva : {}) }}>
             {nombre}
@@ -479,6 +535,12 @@ function CronogramaUva() {
       </nav>
 
       {error && <div style={S.errorBar}>{error}</div>}
+      {!puedeEditar && (
+        <div style={S.avisoLectura}>
+          👁 Estás en <b>modo solo lectura</b>. Puedes ver todo, pero para llenar o cambiar datos
+          <button style={S.linkIngresar} onClick={() => setMostrarAcceso(true)}>ingresa con tu contraseña</button>.
+        </div>
+      )}
 
       {/* ============ PANEL ============ */}
       {vista === "panel" && metricas && (
@@ -623,7 +685,7 @@ function CronogramaUva() {
                 <button key={l.lote} style={S.cardLote} onClick={() => setLoteAbierto(l.lote)}>
                   <div style={S.cardLoteTop}>
                     <span style={S.loteNombre}>{l.lote}</span>
-                    <span style={S.badgeVar}>{l.variedad}{LOTES_ESPECIALES.includes(l.lote) ? " ★" : ""}</span>
+                    <span style={S.badgeVar}>{l.variedad}</span>
                   </div>
                   <div style={S.cardLoteInfo}>{l.fundo} · {l.area} ha · fen. {l.fenologia} d</div>
                   {nLabs === 0
@@ -652,6 +714,22 @@ function CronogramaUva() {
       {vista === "materiales" && (
         <SeccionMateriales materiales={materiales}
           onCrear={crearMaterial} onActualizar={actualizarMaterial} onEliminar={eliminarMaterial} />
+      )}
+
+      {vista === "bitacora" && (
+        <SeccionBitacora bitacora={bitacora} onRecargar={recargar} />
+      )}
+
+      {mostrarAcceso && (
+        <ModalAcceso
+          onCerrar={() => setMostrarAcceso(false)}
+          onEntrar={(clave) => {
+            const u = USUARIOS[clave.trim().toLowerCase()];
+            if (!u) return false;
+            const s = { nombre: u.nombre, fundo: u.fundo };
+            guardarSesion(s); setSesion(s); setMostrarAcceso(false);
+            return true;
+          }} />
       )}
 
       {loteDetalle && (
@@ -1025,6 +1103,65 @@ function SeccionMateriales({ materiales, onCrear, onActualizar, onEliminar }) {
   );
 }
 
+// ============ MODAL DE ACCESO ============
+function ModalAcceso({ onCerrar, onEntrar }) {
+  const [clave, setClave] = useState("");
+  const [errorClave, setErrorClave] = useState(false);
+  const intentar = () => { if (!onEntrar(clave)) setErrorClave(true); };
+  return (
+    <div style={S.modalFondo} onClick={onCerrar}>
+      <div style={{ ...S.modal, maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+        <div style={S.modalHead}>
+          <h2 style={S.modalTitulo}>Ingresar para editar</h2>
+          <button style={S.btnCerrar} onClick={onCerrar}>✕</button>
+        </div>
+        <p style={{ fontSize: 13.5, color: "#6b7565", margin: "0 0 14px", lineHeight: 1.5 }}>
+          Sin clave puedes ver toda la información. Ingresa tu contraseña para poder
+          llenar y editar datos; así queda registrado quién hizo cada cambio.
+        </p>
+        <input type="password" style={{ ...S.inputFecha, width: "100%", fontSize: 16 }}
+          placeholder="Contraseña" value={clave} autoFocus
+          onChange={e => { setClave(e.target.value); setErrorClave(false); }}
+          onKeyDown={e => { if (e.key === "Enter") intentar(); }} />
+        {errorClave && <div style={{ color: "#b3261e", fontSize: 12.5, marginTop: 8, fontWeight: 600 }}>Contraseña incorrecta.</div>}
+        <button style={{ ...S.btnPrimario, width: "100%", marginTop: 14 }} onClick={intentar}>Entrar</button>
+      </div>
+    </div>
+  );
+}
+
+// ============ SECCIÓN BITÁCORA ============
+function SeccionBitacora({ bitacora, onRecargar }) {
+  const fmtFechaHora = (iso) => {
+    const d = new Date(iso);
+    const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return `${d.getDate()} ${meses[d.getMonth()]} ${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}`;
+  };
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+        <h2 style={{ ...S.subtitulo, margin: 0 }}>Últimos cambios registrados</h2>
+        <button style={S.btnRecargar} onClick={onRecargar}>↻ Actualizar</button>
+      </div>
+      <p style={S.notaMat}>Se muestran los 60 movimientos más recientes. Cada registro indica quién hizo el cambio y en qué.</p>
+      {bitacora.length === 0
+        ? <p style={S.vacio}>Aún no hay cambios registrados.</p>
+        : <div style={S.lista}>
+            {bitacora.map(b => (
+              <div key={b.id} style={S.filaBitacora}>
+                <span style={{ ...S.bitUsuario, background: b.fundo === "AP" ? "#f3edfa" : "#e5f2e9", color: b.fundo === "AP" ? "#6b3fa0" : "#2e7d4f" }}>
+                  {b.usuario}
+                </span>
+                <span style={S.bitAccion}>{b.accion}</span>
+                <span style={S.bitDetalle}>{b.detalle}</span>
+                <span style={S.bitFecha}>{fmtFechaHora(b.creado_en)}</span>
+              </div>
+            ))}
+          </div>}
+    </div>
+  );
+}
+
 // ============ SUBCOMPONENTES ============
 function Card({ titulo, valor, tono }) {
   const colores = { rojo: "#b3261e", ambar: "#b8860b", verde: "#2e7d4f", uva: "#6b3fa0" };
@@ -1085,7 +1222,6 @@ function DetalleLote({ lote, fechas, reales, onCerrar, onActualizar, onFechaReal
   const [borradores, setBorradores] = useState({});
   const cia = lote.cianamida;
   const ddc = cia ? diffDias(hoy(), cia) : null;
-  const esEspecial = LOTES_ESPECIALES.includes(lote.lote);
 
   const aplicarFormula = (lab, texto) => {
     const n = parseInt(String(texto).replace(/\s/g, ""), 10);
@@ -1133,7 +1269,7 @@ function DetalleLote({ lote, fechas, reales, onCerrar, onActualizar, onFechaReal
       <div style={S.modal} onClick={e => e.stopPropagation()}>
         <div style={S.modalHead}>
           <div>
-            <h2 style={S.modalTitulo}>Lote {lote.lote} {esEspecial && <span style={S.tagEspecial}>fórmulas +10 d</span>}</h2>
+            <h2 style={S.modalTitulo}>Lote {lote.lote}</h2>
             <div style={S.modalSub}>
               Fundo {lote.fundo} · {lote.variedad} · {lote.area} ha
               {ddc !== null && <> · <b>DDC {ddc}</b></>}
@@ -1283,7 +1419,19 @@ const S = {
   headerStats: { fontSize: 14, color: "#4a5546", display: "flex", gap: 8, alignItems: "center" },
   dot: { color: "#b5b3a6" },
   btnRecargar: { background: "#fff", border: `1px solid ${LINEA}`, borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, color: "#2e7d4f", cursor: "pointer", fontFamily: "inherit" },
+  sesionBox: { display: "inline-flex", alignItems: "center", gap: 6, background: "#fff", border: `1px solid ${LINEA}`, borderRadius: 20, padding: "3px 5px 3px 10px" },
+  sesionNombre: { fontSize: 12.5, fontWeight: 700, color: VERDE_OSCURO },
+  sesionFundo: { fontSize: 10.5, fontWeight: 700, color: "#fff", background: "#6b3fa0", padding: "2px 7px", borderRadius: 10 },
+  btnSalir: { background: "transparent", border: "none", color: "#8a8f85", fontSize: 11.5, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline", padding: "2px 4px" },
+  btnEntrar: { background: "#fbf3dd", border: "1px solid #e8d9a8", borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, color: "#8a6508", cursor: "pointer", fontFamily: "inherit" },
+  filaBitacora: { display: "grid", gridTemplateColumns: "auto auto 1fr auto", gap: 10, alignItems: "center", background: "#fff", border: `1px solid ${LINEA}`, borderRadius: 8, padding: "9px 12px", fontSize: 12.5 },
+  bitUsuario: { fontWeight: 700, fontSize: 11.5, padding: "3px 9px", borderRadius: 10, whiteSpace: "nowrap" },
+  bitAccion: { fontWeight: 600, color: "#4a5546", whiteSpace: "nowrap" },
+  bitDetalle: { color: "#6b7565", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  bitFecha: { color: "#8a8f85", fontSize: 11.5, whiteSpace: "nowrap" },
   errorBar: { background: "#fbe9e7", border: "1px solid #efb8b2", color: "#8a2620", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginBottom: 16, fontWeight: 600 },
+  avisoLectura: { background: "#fbf3dd", border: "1px solid #e8d9a8", color: "#8a6508", borderRadius: 10, padding: "10px 14px", fontSize: 13, marginBottom: 16 },
+  linkIngresar: { background: "transparent", border: "none", color: "#6b3fa0", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 13, textDecoration: "underline", padding: "0 4px" },
   tabs: { display: "flex", gap: 6, alignItems: "center", marginBottom: 20, flexWrap: "wrap" },
   tab: { padding: "8px 16px", borderRadius: 20, border: `1px solid ${LINEA}`, background: "#fff", fontSize: 13.5, fontWeight: 600, color: "#4a5546", cursor: "pointer", fontFamily: "inherit" },
   tabActiva: { background: VERDE_OSCURO, color: "#fff", borderColor: VERDE_OSCURO },
