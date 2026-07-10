@@ -165,6 +165,18 @@ const diffDias = (a, b) => Math.round((new Date(a + "T00:00:00") - new Date(b + 
 const nombreCortoLabor = (l) => l.replace(/^\d+\.\s*/, "").replace("Colocado o Retiro de Gorros/Bolsa", "Gorros/Bolsa");
 const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now());
 
+// Ordena lotes por fecha de poda (más temprana primero).
+// Los que no tienen poda van al final, ordenados por nombre de lote.
+function ordenarPorPoda(a, b) {
+  if (a.poda && b.poda) {
+    if (a.poda !== b.poda) return a.poda < b.poda ? -1 : 1;
+    return a.lote.localeCompare(b.lote, "es", { numeric: true });
+  }
+  if (a.poda) return -1;
+  if (b.poda) return 1;
+  return a.lote.localeCompare(b.lote, "es", { numeric: true });
+}
+
 // ============ MOTOR DE FÓRMULAS ============
 function computarFechas(l) {
   const f = {};
@@ -469,7 +481,7 @@ function CronogramaUva() {
     return lotes.filter(l =>
       (filtroFundo === "todos" || l.fundo === filtroFundo) &&
       (filtroVariedad === "todas" || l.variedad === filtroVariedad)
-    );
+    ).sort(ordenarPorPoda);
   }, [lotes, filtroFundo, filtroVariedad]);
 
   const metricas = useMemo(() => {
@@ -800,7 +812,7 @@ function SeccionPautas({ pautas, lotes, onCrear, onActualizar, onEliminar,
     (filtroFundo === "todos" || !p.lote || fundoDe[p.lote] === filtroFundo) &&
     (filtroLote === "todos" || (filtroLote === "general" ? !p.lote : p.lote === filtroLote))
   );
-  const lotesFiltro = (lotes || []).filter(l => filtroFundo === "todos" || l.fundo === filtroFundo);
+  const lotesFiltro = (lotes || []).filter(l => filtroFundo === "todos" || l.fundo === filtroFundo).sort(ordenarPorPoda);
   const TURNOS = [["manana", "Mañana"], ["tarde", "Tarde"], ["noche", "Noche"]];
 
   return (
@@ -840,7 +852,7 @@ function SeccionPautas({ pautas, lotes, onCrear, onActualizar, onEliminar,
             </select>
             <select style={S.select} value={nuevoLote} onChange={e => setNuevoLote(e.target.value)}>
               <option value="">Sin lote (general)</option>
-              {(lotes || []).map(l => <option key={l.lote} value={l.lote}>{l.lote} · {l.fundo}</option>)}
+              {[...(lotes || [])].sort(ordenarPorPoda).map(l => <option key={l.lote} value={l.lote}>{l.lote} · {l.fundo}</option>)}
             </select>
             <button style={S.btnPrimario} onClick={crear}>Crear pauta</button>
             <button style={S.btnSecundario} onClick={() => setMostrarNueva(false)}>Cancelar</button>
