@@ -384,7 +384,10 @@ function CronogramaUva() {
       setLotes(datos.lotes.map(f => ({
         lote: f.lote, fundo: f.fundo, area: Number(f.area), variedad: f.variedad,
         fenologia: f.fenologia, poda: f.poda, cianamida: f.cianamida,
-        formulas: f.formulas || {}, excluidas: f.excluidas || []
+        // Se combinan las fórmulas por defecto con las guardadas: así una labor
+        // nueva (que aún no está en la base de datos) aparece con su fórmula,
+        // sin pisar los ajustes que el usuario ya haya hecho por lote.
+        formulas: { ...formulasDefecto(), ...(f.formulas || {}) }, excluidas: f.excluidas || []
       })));
       const r = {};
       datos.reales.forEach(x => { r[`${x.lote}|${x.labor}`] = x.fecha; });
