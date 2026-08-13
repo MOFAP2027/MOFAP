@@ -619,7 +619,7 @@ function CronogramaUva() {
         <div>
           <div style={S.cards}>
             <Card titulo="Labores vencidas" valor={metricas.vencidas.length} tono={metricas.vencidas.length > 0 ? "rojo" : "verde"} />
-            <Card titulo="Próximas 14 días" valor={metricas.proximas.length} tono="ambar" />
+            <Card titulo="Próximos 7 días" valor={metricas.proximas.length} tono="ambar" />
             <Card titulo="Completadas" valor={`${metricas.totalComp}/${metricas.totalProg}`} tono="verde" />
             <Card titulo="Lotes sin cianamida" valor={metricas.sinCrono.length} tono={metricas.sinCrono.length > 0 ? "uva" : "verde"} />
           </div>
