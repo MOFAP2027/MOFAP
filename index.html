@@ -57,7 +57,7 @@ function borrarSesion() { localStorage.removeItem(SESION_KEY); }
 
 // ============ LABORES ============
 const LABORES = [
-  "1.PODA", "CIANAMIDA", "2.AMARRE", "3.SARMENTEO", "4.T.PLASTICO", "5.A.PASADORES",
+  "1.PODA", "CIANAMIDA", "2.AMARRE", "3.SARMENTEO", "INC. MULCH", "4.T.PLASTICO", "5.A.PASADORES",
   "6.CANOPIA 1", "7.CANOPIA 2", "9. J. FOLLAJERO", "10. A.RACIMOS", "11. AJUSTE DE CARGA",
   "8. CANOPIA 3", "12. Raleo", "13. RECOJO DE PLASTICO", "14. desuville",
   "15. Colocado o Retiro de Gorros/Bolsa", "16. Canopia 4", "17. Canopia 5",
@@ -73,6 +73,7 @@ function formulasDefecto() {
   return {
     "2.AMARRE":            { base: "1.PODA",        dias: 1 },
     "3.SARMENTEO":         { base: "CIANAMIDA",     dias: 3 },
+    "INC. MULCH":          { base: "3.SARMENTEO",   dias: 3 },
     "4.T.PLASTICO":        { base: "CIANAMIDA",     dias: 5 },
     "5.A.PASADORES":       { base: "CIANAMIDA",     dias: 5 },
     "6.CANOPIA 1":         { base: "CIANAMIDA",     dias: 35 },
