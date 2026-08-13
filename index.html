@@ -166,6 +166,24 @@ const diffDias = (a, b) => Math.round((new Date(a + "T00:00:00") - new Date(b + 
 const nombreCortoLabor = (l) => l.replace(/^\d+\.\s*/, "").replace("Colocado o Retiro de Gorros/Bolsa", "Gorros/Bolsa");
 const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now());
 
+// Devuelve el lunes (ISO) de la semana que contiene la fecha dada
+function lunesDe(iso) {
+  const d = new Date(iso + "T00:00:00");
+  const dow = (d.getDay() + 6) % 7; // 0=lunes
+  d.setDate(d.getDate() - dow);
+  return d.toISOString().slice(0, 10);
+}
+// Número de semana ISO (para el título "SEMANA 33")
+function numeroSemana(iso) {
+  const d = new Date(iso + "T00:00:00");
+  const jueves = new Date(d);
+  jueves.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const primerJueves = new Date(jueves.getFullYear(), 0, 4);
+  const dif = (jueves - primerJueves) / 86400000;
+  return 1 + Math.round((dif - 3 + ((primerJueves.getDay() + 6) % 7)) / 7);
+}
+const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
 // Ordena lotes por fecha de poda (más temprana primero).
 // Los que no tienen poda van al final, ordenados por nombre de lote.
 function ordenarPorPoda(a, b) {
@@ -313,6 +331,19 @@ const db = {
     const r = await sb.from("corrida_materiales").delete().eq("id", id);
     if (!r.error) registrarBitacora("Eliminó material", "");
     return r;
+  },
+  async cargarSemana(semanaLunes) {
+    const r = await sb.from("corrida_semanal").select("*").eq("semana_lunes", semanaLunes);
+    if (r.error) throw r.error;
+    return r.data || [];
+  },
+  async guardarCeldaSemanal(celda) {
+    const r = await sb.from("corrida_semanal").upsert({
+      id: celda.id, semana_lunes: celda.semana_lunes, fundo: celda.fundo,
+      labor: celda.labor, dia: celda.dia, lotes: celda.lotes || "", np: celda.np || "", ...sello()
+    });
+    if (!r.error) registrarBitacora("Editó programa semanal", `${celda.labor} · ${DIAS_SEMANA[celda.dia]}`);
+    return r;
   }
 };
 
@@ -325,7 +356,6 @@ function CronogramaUva() {
   const [parametrosPauta, setParametrosPauta] = useState({});
   const [materiales, setMateriales] = useState([]);
   const [vista, setVista] = useState("panel");
-  const [modoCrono, setModoCrono] = useState("programado");
   const [filtroFundo, setFiltroFundo] = useState("todos");
   const [filtroVariedad, setFiltroVariedad] = useState("todas");
   const [filtroLaborPauta, setFiltroLaborPauta] = useState("todas");
@@ -335,6 +365,8 @@ function CronogramaUva() {
   const [sesion, setSesion] = useState(leerSesion());
   const [bitacora, setBitacora] = useState([]);
   const [mostrarAcceso, setMostrarAcceso] = useState(false);
+  const [semanaLunes, setSemanaLunes] = useState(lunesDe(hoy()));
+  const [celdasSemana, setCeldasSemana] = useState({});
 
   // Aplicar la identidad al módulo de base de datos
   useEffect(() => {
@@ -379,6 +411,29 @@ function CronogramaUva() {
   };
 
   useEffect(() => { recargar(); }, []);
+
+  // Cargar el programa semanal cada vez que cambia la semana seleccionada
+  const cargarSemana = async () => {
+    try {
+      const filas = await db.cargarSemana(semanaLunes);
+      const m = {};
+      filas.forEach(f => { m[`${f.fundo}|${f.labor}|${f.dia}`] = { lotes: f.lotes || "", np: f.np || "" }; });
+      setCeldasSemana(m);
+    } catch (e) { console.error(e); }
+  };
+  useEffect(() => { if (lotes) cargarSemana(); }, [semanaLunes, lotes]);
+
+  const guardarCeldaSemanal = (fundo, labor, dia, campo, valor) => {
+    const key = `${fundo}|${labor}|${dia}`;
+    const actual = celdasSemana[key] || { lotes: "", np: "" };
+    const nueva = { ...actual, [campo]: valor };
+    setCeldasSemana(prev => ({ ...prev, [key]: nueva }));
+    guardar(() => db.guardarCeldaSemanal({
+      id: `${semanaLunes}|${fundo}|${labor}|${dia}`,
+      semana_lunes: semanaLunes, fundo, labor, dia,
+      lotes: nueva.lotes, np: nueva.np
+    }));
+  };
 
   // Ejecuta una operación de guardado mostrando el estado
   const guardar = async (op) => {
@@ -537,7 +592,7 @@ function CronogramaUva() {
       </header>
 
       <nav style={S.tabs}>
-        {[["panel","Panel"],["cronograma","Cronograma"],["lotes","Lotes"],["pautas","Pautas"],["materiales","Materiales"],["bitacora","Bitácora"]].map(([id, nombre]) => (
+        {[["panel","Panel"],["cronograma","Cronograma"],["semanal","Semanal"],["lotes","Lotes"],["pautas","Pautas"],["materiales","Materiales"],["bitacora","Bitácora"]].map(([id, nombre]) => (
           <button key={id} onClick={() => setVista(id)}
             style={{ ...S.tab, ...(vista === id ? S.tabActiva : {}) }}>
             {nombre}
@@ -593,28 +648,16 @@ function CronogramaUva() {
       {vista === "cronograma" && (
         <div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
-            <div style={S.switchModo}>
-              <button style={{ ...S.switchBtn, ...(modoCrono === "programado" ? S.switchActivo : {}) }}
-                onClick={() => setModoCrono("programado")}>Programado</button>
-              <button style={{ ...S.switchBtn, ...(modoCrono === "real" ? S.switchActivoReal : {}) }}
-                onClick={() => setModoCrono("real")}>Real</button>
-            </div>
             <Filtros filtroFundo={filtroFundo} setFiltroFundo={setFiltroFundo}
               filtroVariedad={filtroVariedad} setFiltroVariedad={setFiltroVariedad} lotes={lotes} />
           </div>
 
-          {modoCrono === "programado"
-            ? <div style={S.leyenda}>
-                <Chip color="#2e7d4f" texto="Completada" />
-                <Chip color="#b3261e" texto="Vencida" />
-                <Chip color="#b8860b" texto="Próxima (≤14 d)" />
-                <Chip color="#8a8f85" texto="Programada" />
-              </div>
-            : <div style={S.leyenda}>
-                <Chip color="#2e7d4f" texto="Hecha a tiempo o adelantada" />
-                <Chip color="#b8860b" texto="Hecha con atraso (se muestra +días)" />
-                <Chip color="#c8c6ba" texto="Aún sin fecha real" />
-              </div>}
+          <div style={S.leyenda}>
+            <Chip color="#2e7d4f" texto="Completada" />
+            <Chip color="#b3261e" texto="Vencida" />
+            <Chip color="#b8860b" texto="Próxima (≤14 d)" />
+            <Chip color="#8a8f85" texto="Programada" />
+          </div>
 
           <div style={S.tablaWrap}>
             <table style={S.tabla}>
@@ -649,27 +692,11 @@ function CronogramaUva() {
                         );
                         const prog = fechas[lab];
                         const real = reales[`${l.lote}|${lab}`];
-                        if (modoCrono === "programado") {
-                          const est = estadoLabor(prog, real);
-                          return (
-                            <td key={lab} style={{ ...S.td, ...S.celda[est] }}
-                              onClick={() => setLoteAbierto(l.lote)} title={`${l.lote} — ${lab}`}>
-                              {fmtCorta(prog)}
-                            </td>
-                          );
-                        }
-                        if (!real) return (
-                          <td key={lab} style={{ ...S.td, color: "#c8c6ba" }}
-                            onClick={() => setLoteAbierto(l.lote)}>—</td>
-                        );
-                        const desv = prog ? diffDias(real, prog) : null;
-                        const atrasada = desv !== null && desv > 0;
+                        const est = estadoLabor(prog, real);
                         return (
-                          <td key={lab}
-                            style={{ ...S.td, background: atrasada ? "#fbf3dd" : "#e5f2e9", color: atrasada ? "#8a6508" : "#2e7d4f", fontWeight: 600 }}
-                            onClick={() => setLoteAbierto(l.lote)}
-                            title={`${l.lote} — ${lab} · programada ${fmtCorta(prog)}`}>
-                            {fmtCorta(real)}{desv !== null && desv !== 0 ? ` (${desv > 0 ? "+" : ""}${desv})` : ""}
+                          <td key={lab} style={{ ...S.td, ...S.celda[est] }}
+                            onClick={() => setLoteAbierto(l.lote)} title={`${l.lote} — ${lab}`}>
+                            {fmtCorta(prog)}
                           </td>
                         );
                       })}
@@ -731,6 +758,13 @@ function CronogramaUva() {
 
       {vista === "bitacora" && (
         <SeccionBitacora bitacora={bitacora} onRecargar={recargar} />
+      )}
+
+      {vista === "semanal" && (
+        <SeccionSemanal
+          lotes={lotes} fechasPorLote={fechasPorLote}
+          semanaLunes={semanaLunes} setSemanaLunes={setSemanaLunes}
+          celdas={celdasSemana} onGuardarCelda={guardarCeldaSemanal} />
       )}
 
       {mostrarAcceso && (
@@ -1116,6 +1150,174 @@ function SeccionMateriales({ materiales, onCrear, onActualizar, onEliminar }) {
   );
 }
 
+// ============ SECCIÓN SEMANAL ============
+function SeccionSemanal({ lotes, fechasPorLote, semanaLunes, setSemanaLunes, celdas, onGuardarCelda }) {
+  // Fechas ISO de los 7 días de la semana (lunes..domingo)
+  const dias = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => addDias(semanaLunes, i));
+  }, [semanaLunes]);
+
+  // Autollenado: para cada fundo+labor+día, qué lotes tienen esa labor programada ese día.
+  // Devuelve { "FUNDO|LABOR|DIA": "A13/A6" }
+  const autoLotes = useMemo(() => {
+    const map = {};
+    (lotes || []).forEach(l => {
+      const fechas = fechasPorLote[l.lote] || {};
+      LABORES.forEach(lab => {
+        const f = fechas[lab];
+        if (!f) return;
+        const idx = dias.indexOf(f);
+        if (idx < 0) return;
+        const key = `${l.fundo}|${lab}|${idx}`;
+        map[key] = map[key] ? `${map[key]}/${l.lote}` : l.lote;
+      });
+    });
+    return map;
+  }, [lotes, fechasPorLote, dias]);
+
+  // Qué labores mostrar por fundo: las que tienen al menos un lote programado esta semana
+  const filasPorFundo = useMemo(() => {
+    const res = { AP: [], LG: [] };
+    ["AP", "LG"].forEach(fundo => {
+      LABORES.forEach(lab => {
+        let hay = false;
+        for (let d = 0; d < 7; d++) {
+          if (autoLotes[`${fundo}|${lab}|${d}`]) { hay = true; break; }
+          if ((celdas[`${fundo}|${lab}|${d}`] || {}).np) { hay = true; break; }
+        }
+        if (hay) res[fundo].push(lab);
+      });
+    });
+    return res;
+  }, [autoLotes, celdas]);
+
+  const valorCelda = (fundo, lab, d, campo) => {
+    const guardada = celdas[`${fundo}|${lab}|${d}`];
+    if (guardada && guardada[campo] !== undefined && guardada[campo] !== "") return guardada[campo];
+    if (campo === "lotes") return autoLotes[`${fundo}|${lab}|${d}`] || "";
+    return "";
+  };
+
+  // Total de personas por día (suma de N.P de ambos fundos)
+  const totalDia = (d) => {
+    let t = 0;
+    ["AP", "LG"].forEach(fundo => {
+      filasPorFundo[fundo].forEach(lab => {
+        const np = parseFloat(valorCelda(fundo, lab, d, "np"));
+        if (!isNaN(np)) t += np;
+      });
+    });
+    return t;
+  };
+  const totalFundoDia = (fundo, d) => {
+    let t = 0;
+    filasPorFundo[fundo].forEach(lab => {
+      const np = parseFloat(valorCelda(fundo, lab, d, "np"));
+      if (!isNaN(np)) t += np;
+    });
+    return t;
+  };
+
+  const fmtDiaEncabezado = (iso) => {
+    const [y, m, d] = iso.split("-");
+    const meses = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+    return `${parseInt(d)}-${meses[parseInt(m)-1]}`;
+  };
+
+  const hayDatos = filasPorFundo.AP.length > 0 || filasPorFundo.LG.length > 0;
+
+  const FilasFundo = ({ fundo, color }) => filasPorFundo[fundo].map(lab => (
+    <tr key={`${fundo}-${lab}`}>
+      <td style={{ ...S.semFundoCell, color }}>{fundo === "AP" ? "A P" : "L G"}</td>
+      <td style={{ ...S.semLaborCell, color }}>{nombreCortoLabor(lab).toUpperCase()}</td>
+      {dias.map((iso, d) => (
+        <td key={d} style={{ ...S.semCelda, ...(d >= 6 ? S.semDomingo : {}) }}>
+          <input type="text" style={S.semInputLote}
+            value={valorCelda(fundo, lab, d, "lotes")}
+            placeholder="—"
+            onChange={e => onGuardarCelda(fundo, lab, d, "lotes", e.target.value)} />
+          <input type="text" inputMode="numeric" style={S.semInputNp}
+            value={valorCelda(fundo, lab, d, "np")}
+            placeholder="N.P"
+            onChange={e => onGuardarCelda(fundo, lab, d, "np", e.target.value)} />
+        </td>
+      ))}
+    </tr>
+  ));
+
+  return (
+    <div>
+      <div style={S.semHead}>
+        <button style={S.semNav} onClick={() => setSemanaLunes(addDias(semanaLunes, -7))}>◀ Anterior</button>
+        <div style={S.semTitulo}>
+          SEMANA {numeroSemana(semanaLunes)}
+          <div style={S.semRango}>{fmtDiaEncabezado(semanaLunes)} al {fmtDiaEncabezado(addDias(semanaLunes, 6))}</div>
+        </div>
+        <button style={S.semNav} onClick={() => setSemanaLunes(addDias(semanaLunes, 7))}>Siguiente ▶</button>
+        <button style={{ ...S.btnRecargar, marginLeft: 8 }} onClick={() => setSemanaLunes(lunesDe(hoy()))}>Hoy</button>
+      </div>
+
+      <p style={S.notaMat}>
+        Los lotes se llenan solos según las fechas del cronograma programado. Puedes editar cualquier
+        casilla de lote o escribir el N.P (número de personas); todo se guarda en la base de datos.
+      </p>
+
+      {!hayDatos
+        ? <p style={S.vacio}>No hay labores programadas para esta semana. Usa las flechas para ver otra semana,
+            o revisa que los lotes tengan sus fechas de cianamida cargadas.</p>
+        : <div style={S.tablaWrap}>
+            <table style={S.semTabla}>
+              <thead>
+                <tr>
+                  <th style={{ ...S.semTh, width: 34 }}>FD</th>
+                  <th style={{ ...S.semTh, textAlign: "left", paddingLeft: 8, minWidth: 130 }}>LABOR</th>
+                  {dias.map((iso, d) => (
+                    <th key={d} style={{ ...S.semTh, ...(d >= 6 ? S.semDomingoTh : {}) }}>
+                      {DIAS_SEMANA[d]}
+                      <div style={S.semThFecha}>{fmtDiaEncabezado(iso)}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filasPorFundo.AP.length > 0 && <FilasFundo fundo="AP" color="#1f5ecc" />}
+                {filasPorFundo.LG.length > 0 && <FilasFundo fundo="LG" color="#2e7d4f" />}
+                {/* TOTALES */}
+                <tr>
+                  <td colSpan={2} style={S.semTotalLabel}>TOTAL</td>
+                  {dias.map((iso, d) => (
+                    <td key={d} style={{ ...S.semTotalCell, ...(d >= 6 ? S.semDomingo : {}) }}>
+                      {totalDia(d) > 0 ? totalDia(d) : ""}
+                    </td>
+                  ))}
+                </tr>
+                {filasPorFundo.LG.length > 0 && (
+                  <tr>
+                    <td colSpan={2} style={{ ...S.semTotalLabel, background: "#bfe3c8", color: "#1c4a2c" }}>L G · DIURNO</td>
+                    {dias.map((iso, d) => (
+                      <td key={d} style={{ ...S.semSubtotal, background: "#dcf0e2", ...(d >= 6 ? S.semDomingo : {}) }}>
+                        {totalFundoDia("LG", d) > 0 ? totalFundoDia("LG", d) : ""}
+                      </td>
+                    ))}
+                  </tr>
+                )}
+                {filasPorFundo.AP.length > 0 && (
+                  <tr>
+                    <td colSpan={2} style={{ ...S.semTotalLabel, background: "#bcd6f5", color: "#1c3a66" }}>A P · DIURNO</td>
+                    {dias.map((iso, d) => (
+                      <td key={d} style={{ ...S.semSubtotal, background: "#dbe8fb", ...(d >= 6 ? S.semDomingo : {}) }}>
+                        {totalFundoDia("AP", d) > 0 ? totalFundoDia("AP", d) : ""}
+                      </td>
+                    ))}
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>}
+    </div>
+  );
+}
+
 // ============ MODAL DE ACCESO ============
 function ModalAcceso({ onCerrar, onEntrar }) {
   const [clave, setClave] = useState("");
@@ -1323,7 +1525,6 @@ function DetalleLote({ lote, fechas, reales, onCerrar, onActualizar, onFechaReal
             <div style={{ display: "flex", gap: 6 }}>
               <span style={{ ...S.colTitulo, width: 100, textAlign: "center" }}>Fórmula</span>
               <span style={{ ...S.colTitulo, width: 122 }}>Programada</span>
-              <span style={{ ...S.colTitulo, width: 122, color: "#2e7d4f" }}>Real</span>
             </div>
           </div>
           {LABORES.map(lab => {
@@ -1355,7 +1556,7 @@ function DetalleLote({ lote, fechas, reales, onCerrar, onActualizar, onFechaReal
               <div key={lab} style={{ ...S.laborFila, ...(est === "vencida" ? { background: "#fdf1f0" } : {}), ...(esManual ? S.filaManual : {}) }}>
                 <label style={S.laborCheck}>
                   <input type="checkbox" checked={!!real} disabled={!prog}
-                    title="Marcar como hecha (registra hoy como fecha real)"
+                    title="Marcar como hecha"
                     onChange={() => onFechaReal(lote.lote, lab, real ? null : hoy())} />
                 </label>
                 <div style={S.laborNombre}>
@@ -1392,10 +1593,6 @@ function DetalleLote({ lote, fechas, reales, onCerrar, onActualizar, onFechaReal
                           lab === "1.PODA" ? { poda: e.target.value || null } : { cianamida: e.target.value || null })} />
                     : <input type="date" style={S.inputFechaMini} value={prog || ""}
                         onChange={e => cambiarFechaProg(lab, e.target.value)} />}
-                  <input type="date" style={{ ...S.inputFechaMini, borderColor: "#bcd8c4", background: real ? "#f0f8f2" : "#fff" }}
-                    value={real || ""}
-                    title="Fecha real en que se hizo la labor"
-                    onChange={e => onFechaReal(lote.lote, lab, e.target.value || null)} />
                   {!esManual
                     ? <button style={S.btnQuitar} onClick={() => toggleExcluida(lab)}
                         title="Esta labor no se hace en este lote — quitarla del cronograma">✕</button>
@@ -1409,9 +1606,8 @@ function DetalleLote({ lote, fechas, reales, onCerrar, onActualizar, onFechaReal
         <div style={S.notaPie}>
           <b>Programada</b> se calcula con la fórmula (bases: <b>CIA</b> cianamida, <b>PODA</b>, <b>RAC</b> a. racimos,
           <b> DES</b> deshuville, <b>COS</b> cosecha, <b>FEN</b> fenología); cambia el número o la fecha y todo se recalcula.
-          <b> Real</b> es la fecha en que efectivamente se hizo: regístrala con el calendario verde o marca el check para poner hoy.
-          Si una labor no se hace en este lote, quítala con la <b>✕</b> — aparecerá como "n/a" en el cronograma y no
-          contará en alertas ni avances. Puedes reactivarla cuando quieras.
+          Marca el <b>check</b> para dar una labor por hecha. Si una labor no se hace en este lote, quítala con la <b>✕</b>
+          — aparecerá como "n/a" en el cronograma y no contará en alertas ni avances. Puedes reactivarla cuando quieras.
         </div>
       </div>
     </div>
@@ -1564,6 +1760,24 @@ const S = {
   inputFormula: { width: 50, padding: "5px 5px", borderRadius: 6, border: "1.5px solid #cbb8e4", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", textAlign: "center", color: UVA, background: "#fff" },
   formulaFija: { width: 100, textAlign: "center", fontSize: 11.5, fontWeight: 700, color: UVA },
   notaPie: { fontSize: 12, color: "#6b7565", marginTop: 14, lineHeight: 1.6, background: "#eef0e9", borderRadius: 8, padding: "10px 12px" },
+  // Semanal
+  semHead: { display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" },
+  semNav: { background: VERDE_OSCURO, color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+  semTitulo: { fontFamily: "'Fraunces', Georgia, serif", fontSize: 22, fontWeight: 600, color: VERDE_OSCURO, textAlign: "center", minWidth: 160 },
+  semRango: { fontSize: 12, fontWeight: 400, color: "#6b7565", fontFamily: "'Archivo', sans-serif" },
+  semTabla: { borderCollapse: "collapse", fontSize: 11.5, width: "100%", minWidth: 900 },
+  semTh: { padding: "6px 4px", background: "#f4d9be", color: "#7a4a1e", fontWeight: 700, fontSize: 11, textAlign: "center", border: "1px solid #e5c9a8", whiteSpace: "nowrap" },
+  semThFecha: { fontSize: 10, fontWeight: 700, color: "#b3261e" },
+  semDomingoTh: { background: "#f5c2c2", color: "#8a2620" },
+  semFundoCell: { padding: "3px 4px", border: "1px solid #eceae1", fontWeight: 700, fontSize: 10.5, textAlign: "center", whiteSpace: "nowrap" },
+  semLaborCell: { padding: "3px 6px", border: "1px solid #eceae1", fontWeight: 700, fontSize: 11, whiteSpace: "nowrap" },
+  semCelda: { padding: "2px", border: "1px solid #eceae1", textAlign: "center", verticalAlign: "middle" },
+  semDomingo: { background: "#fce8e8" },
+  semInputLote: { width: "100%", minWidth: 54, padding: "3px 4px", border: "1px solid #e4e2d8", borderRadius: 4, fontSize: 11, fontFamily: "inherit", textAlign: "center", fontWeight: 600, color: "#26302a", background: "#fff", marginBottom: 2 },
+  semInputNp: { width: "100%", minWidth: 54, padding: "3px 4px", border: "1px solid #e4e2d8", borderRadius: 4, fontSize: 11, fontFamily: "inherit", textAlign: "center", fontWeight: 700, color: "#6b3fa0", background: "#faf9f4" },
+  semTotalLabel: { padding: "5px 8px", background: "#f5ee9e", color: "#5a5410", fontWeight: 700, fontSize: 11.5, textAlign: "right", border: "1px solid #e5dd8a" },
+  semTotalCell: { padding: "5px 4px", background: "#f8f2b8", color: "#5a5410", fontWeight: 700, fontSize: 12, textAlign: "center", border: "1px solid #e5dd8a" },
+  semSubtotal: { padding: "4px", fontWeight: 700, fontSize: 11.5, textAlign: "center", border: "1px solid #d5e8db" },
 };
 
 ReactDOM.createRoot(document.getElementById("root")).render(<CronogramaUva />);

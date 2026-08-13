@@ -84,3 +84,48 @@ create policy corrida_parametros_todo on corrida_parametros for all using (true)
 
 drop policy if exists corrida_materiales_todo on corrida_materiales;
 create policy corrida_materiales_todo on corrida_materiales for all using (true) with check (true);
+
+-- ============================================================
+-- COLUMNAS DE AUDITORÍA: quién y cuándo hizo cada cambio
+-- (ejecutar también si ya habías corrido el script antes)
+-- ============================================================
+alter table corrida_lotes      add column if not exists modificado_por text;
+alter table corrida_lotes      add column if not exists modificado_en timestamptz;
+alter table corrida_reales     add column if not exists modificado_por text;
+alter table corrida_reales     add column if not exists modificado_en timestamptz;
+alter table corrida_pautas     add column if not exists modificado_por text;
+alter table corrida_pautas     add column if not exists modificado_en timestamptz;
+alter table corrida_materiales add column if not exists modificado_por text;
+alter table corrida_materiales add column if not exists modificado_en timestamptz;
+
+-- Bitácora de cambios: historial completo de quién cambió qué
+create table if not exists corrida_bitacora (
+  id bigint generated always as identity primary key,
+  usuario text not null,
+  fundo text,
+  accion text not null,
+  detalle text,
+  creado_en timestamptz not null default now()
+);
+alter table corrida_bitacora enable row level security;
+drop policy if exists corrida_bitacora_todo on corrida_bitacora;
+create policy corrida_bitacora_todo on corrida_bitacora for all using (true) with check (true);
+
+-- ============================================================
+-- PROGRAMA SEMANAL: N.P (personas) y lote por día/labor/fundo
+-- Se identifica por la fecha del lunes de esa semana (semana_lunes)
+-- ============================================================
+create table if not exists corrida_semanal (
+  id text primary key,          -- "semana_lunes|fundo|labor|dia"
+  semana_lunes date not null,
+  fundo text not null,
+  labor text not null,
+  dia integer not null,         -- 0=lunes ... 6=domingo
+  lotes text default '',        -- ej. "A13/A6" (autollenado, editable)
+  np text default '',           -- número de personas
+  modificado_por text,
+  modificado_en timestamptz
+);
+alter table corrida_semanal enable row level security;
+drop policy if exists corrida_semanal_todo on corrida_semanal;
+create policy corrida_semanal_todo on corrida_semanal for all using (true) with check (true);
