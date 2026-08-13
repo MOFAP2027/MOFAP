@@ -136,6 +136,8 @@ const EXCEL = [
   {"lote":"G24","fundo":"LG","area":6.66,"variedad":"SG","fenologia":190,"fechas":{}}
 ];
 
+const DENSIDADES_INICIALES = {"AP": {"lotes": [{"lote": "A1", "cod": "SG", "plantacion": "5-Nov-20", "has": 5.62, "pltasHa": 1961, "totalHileras": 67, "pltasHileraProm": 165, "totalPltasLote": 11023, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.68, "hileras": 32, "pltasHilera": 164, "totalPltas": 5248}, {"cuartel": "II", "hasCuartel": 2.95, "hileras": 35, "pltasHilera": 165, "totalPltas": 5775}]}, {"lote": "A2", "cod": "SG", "plantacion": "6-Nov-20", "has": 5.94, "pltasHa": 1961, "totalHileras": 70, "pltasHileraProm": 167, "totalPltasLote": 11655, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.96, "hileras": 35, "pltasHilera": 166, "totalPltas": 5810}, {"cuartel": "II", "hasCuartel": 2.98, "hileras": 35, "pltasHilera": 167, "totalPltas": 5845}]}, {"lote": "A3", "cod": "AC", "plantacion": "2-Ene-19", "has": 5.5, "pltasHa": 1730, "totalHileras": 68, "pltasHileraProm": 140, "totalPltasLote": 9520, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.75, "hileras": 34, "pltasHilera": 140, "totalPltas": 4760}, {"cuartel": "II", "hasCuartel": 2.75, "hileras": 34, "pltasHilera": 140, "totalPltas": 4760}]}, {"lote": "A4", "cod": "SG", "plantacion": "28-Nov-19", "has": 5.66, "pltasHa": 1471, "totalHileras": 70, "pltasHileraProm": 119, "totalPltasLote": 8330, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.83, "hileras": 35, "pltasHilera": 119, "totalPltas": 4165}, {"cuartel": "II", "hasCuartel": 2.83, "hileras": 35, "pltasHilera": 119, "totalPltas": 4165}]}, {"lote": "A5", "cod": "SW", "plantacion": "11-Dic-13", "has": 5.42, "pltasHa": 1730, "totalHileras": 68, "pltasHileraProm": 132, "totalPltasLote": 9370, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.5, "hileras": "6/26", "pltasHilera": "115/140", "totalPltas": "690/3640"}, {"cuartel": "II", "hasCuartel": 2.91, "hileras": 36, "pltasHilera": 140, "totalPltas": 5040}]}, {"lote": "A6", "cod": "SW", "plantacion": "24-Oct-13", "has": 5.83, "pltasHa": 1730, "totalHileras": 72, "pltasHileraProm": 140, "totalPltasLote": 10080, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.91, "hileras": 36, "pltasHilera": 140, "totalPltas": 5040}, {"cuartel": "II", "hasCuartel": 2.91, "hileras": 36, "pltasHilera": 140, "totalPltas": 5040}]}, {"lote": "A7", "cod": "SW", "plantacion": "10-Dic-13", "has": 5.77, "pltasHa": 1471, "totalHileras": 73, "pltasHileraProm": 97, "totalPltasLote": 8486, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.94, "hileras": "3/35", "pltasHilera": "52/119", "totalPltas": "156/4165"}, {"cuartel": "II", "hasCuartel": 2.83, "hileras": 35, "pltasHilera": 119, "totalPltas": 4165}]}, {"lote": "A8", "cod": "CC", "plantacion": "30-Dic-20", "has": 6.0, "pltasHa": 1961, "totalHileras": 70, "pltasHileraProm": 168, "totalPltasLote": 11767, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.99, "hileras": "16/19", "pltasHilera": "167/168", "totalPltas": "2672/3192"}, {"cuartel": "II", "hasCuartel": 3.01, "hileras": "12/23", "pltasHilera": "168/169", "totalPltas": "2016/3887"}]}, {"lote": "A9", "cod": "CC", "plantacion": "29-Dic-20", "has": 6.14, "pltasHa": 1961, "totalHileras": 71, "pltasHileraProm": 170, "totalPltasLote": 12035, "cuarteles": [{"cuartel": "I", "hasCuartel": 3.02, "hileras": 35, "pltasHilera": 169, "totalPltas": 5915}, {"cuartel": "II", "hasCuartel": 3.12, "hileras": 36, "pltasHilera": 170, "totalPltas": 6120}]}, {"lote": "A10", "cod": "AC", "plantacion": "12-Oct-22", "has": 5.68, "pltasHa": 1961, "totalHileras": 70, "pltasHileraProm": 159, "totalPltasLote": 11130, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.84, "hileras": 35, "pltasHilera": 159, "totalPltas": 5565}, {"cuartel": "II", "hasCuartel": 2.84, "hileras": 35, "pltasHilera": 159, "totalPltas": 5565}]}, {"lote": "A11", "cod": "AC", "plantacion": "26-Oct-22", "has": 5.76, "pltasHa": 1961, "totalHileras": 71, "pltasHileraProm": 159, "totalPltasLote": 11289, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.84, "hileras": 35, "pltasHilera": 159, "totalPltas": 5565}, {"cuartel": "II", "hasCuartel": 2.92, "hileras": 36, "pltasHilera": 159, "totalPltas": 5724}]}, {"lote": "A12", "cod": "AC", "plantacion": "28-Oct-22", "has": 2.64, "pltasHa": 1471, "totalHileras": 36, "pltasHileraProm": 107, "totalPltasLote": 3876, "cuarteles": [{"cuartel": "I", "hasCuartel": 1.54, "hileras": 19, "pltasHilera": 119, "totalPltas": 2261}, {"cuartel": "II", "hasCuartel": 1.1, "hileras": 17, "pltasHilera": 95, "totalPltas": 1615}]}, {"lote": "A13", "cod": "SW", "plantacion": "8-Dic-17", "has": 6.08, "pltasHa": 1471, "totalHileras": 76, "pltasHileraProm": 112, "totalPltasLote": 8934, "cuarteles": [{"cuartel": "I", "hasCuartel": 3.16, "hileras": "5/35", "pltasHilera": "97/119", "totalPltas": "485/4165"}, {"cuartel": "II", "hasCuartel": 2.91, "hileras": 36, "pltasHilera": 119, "totalPltas": 4284}]}, {"lote": "A14", "cod": "AC", "plantacion": "7-Dic-18", "has": 5.7, "pltasHa": 1471, "totalHileras": 71, "pltasHileraProm": 118, "totalPltasLote": 8378, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.81, "hileras": 35, "pltasHilera": 118, "totalPltas": 4130}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 36, "pltasHilera": 118, "totalPltas": 4248}]}, {"lote": "A15", "cod": "SF", "plantacion": "14-Dic-18", "has": 5.66, "pltasHa": 1471, "totalHileras": 70, "pltasHileraProm": 119, "totalPltasLote": 8330, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.83, "hileras": 35, "pltasHilera": 119, "totalPltas": 4165}, {"cuartel": "II", "hasCuartel": 2.83, "hileras": 35, "pltasHilera": 119, "totalPltas": 4165}]}, {"lote": "A16", "cod": "MS", "plantacion": "28-Nov-24", "has": 0.76, "pltasHa": 1961, "totalHileras": 26, "pltasHileraProm": 56, "totalPltasLote": 1484, "cuarteles": [{"cuartel": "I", "hasCuartel": 0.17, "hileras": 6, "pltasHilera": 54, "totalPltas": 324}, {"cuartel": "I", "hasCuartel": 0.59, "hileras": 20, "pltasHilera": 58, "totalPltas": 1160}]}], "resumen": [{"cod": "SG", "lotes": "A1,A2,A4", "has": 17.23}, {"cod": "AC", "lotes": "A3,A10,A11,A12,A14", "has": 25.27}, {"cod": "SW", "lotes": "A5,A6,A7,A13", "has": 23.09}, {"cod": "SF", "lotes": "A15", "has": 5.66}, {"cod": "CC", "lotes": "A8,A9", "has": 12.14}, {"cod": "MS", "lotes": "A16", "has": 0.76}], "total": 84.15}, "LG": {"lotes": [{"lote": "G1", "cod": "SS", "plantacion": "16-Nov-24", "has": 1.9, "pltasHa": 1730, "totalHileras": 23, "pltasHileraProm": 143, "totalPltasLote": 3289, "cuarteles": [{"cuartel": "I", "hasCuartel": 0.0, "hileras": "", "pltasHilera": 143, "totalPltas": ""}, {"cuartel": "II", "hasCuartel": 1.9, "hileras": 23, "pltasHilera": 143, "totalPltas": 3289}]}, {"lote": "G2", "cod": "AC", "plantacion": "16-Nov-22", "has": 5.79, "pltasHa": 1730, "totalHileras": 70, "pltasHileraProm": 143, "totalPltasLote": 10010, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G3", "cod": "SS", "plantacion": "18-Nov-24", "has": 5.54, "pltasHa": 1730, "totalHileras": 67, "pltasHileraProm": 143, "totalPltasLote": 9581, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.64, "hileras": 32, "pltasHilera": 143, "totalPltas": 4576}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G4", "cod": "AC", "plantacion": "2-Nov-22", "has": 5.79, "pltasHa": 1730, "totalHileras": 70, "pltasHileraProm": 143, "totalPltasLote": 10010, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G5", "cod": "CC", "plantacion": "13-Nov-20", "has": 5.54, "pltasHa": 1730, "totalHileras": 67, "pltasHileraProm": 143, "totalPltasLote": 9581, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.64, "hileras": 32, "pltasHilera": 143, "totalPltas": 4576}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G6", "cod": "CC", "plantacion": "27-Dic-16", "has": 5.79, "pltasHa": 1730, "totalHileras": 70, "pltasHileraProm": 143, "totalPltasLote": 10010, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G7", "cod": "SG", "plantacion": "9-Dic-15", "has": 5.48, "pltasHa": 1730, "totalHileras": 67, "pltasHileraProm": 138, "totalPltasLote": 9485, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.59, "hileras": "26/6", "pltasHilera": "143/127", "totalPltas": "3718/762"}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G8", "cod": "SG", "plantacion": "14-Oct-24", "has": 5.79, "pltasHa": 1730, "totalHileras": 70, "pltasHileraProm": 143, "totalPltasLote": 10010, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G9", "cod": "TM", "plantacion": "28-Nov-15", "has": 5.79, "pltasHa": 1730, "totalHileras": 70, "pltasHileraProm": 143, "totalPltasLote": 10010, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G10", "cod": "TM", "plantacion": "23-Nov-15", "has": 5.87, "pltasHa": 1730, "totalHileras": 71, "pltasHileraProm": 143, "totalPltasLote": 10153, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}, {"cuartel": "II", "hasCuartel": 2.98, "hileras": 36, "pltasHilera": 143, "totalPltas": 5148}]}, {"lote": "G11", "cod": "AL", "plantacion": "31-Oct-24", "has": 5.77, "pltasHa": 1730, "totalHileras": 70, "pltasHileraProm": 141, "totalPltasLote": 9989, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.88, "hileras": "32/3", "pltasHilera": "143/136", "totalPltas": "4576/408"}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G12", "cod": "AL", "plantacion": "7-Nov-24", "has": 5.87, "pltasHa": 1730, "totalHileras": 71, "pltasHileraProm": 143, "totalPltasLote": 10153, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}, {"cuartel": "II", "hasCuartel": 2.98, "hileras": 36, "pltasHilera": 143, "totalPltas": 5148}]}, {"lote": "G13", "cod": "SG", "plantacion": "26-Nov-19", "has": 4.83, "pltasHa": 1730, "totalHileras": 70, "pltasHileraProm": 120, "totalPltasLote": 8365, "cuarteles": [{"cuartel": "I", "hasCuartel": 1.94, "hileras": 35, "pltasHilera": "96/143", "totalPltas": "3360/5005"}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G14", "cod": "SG", "plantacion": "16-Nov-19", "has": 5.87, "pltasHa": 1730, "totalHileras": 71, "pltasHileraProm": 143, "totalPltasLote": 10153, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}, {"cuartel": "II", "hasCuartel": 2.98, "hileras": 36, "pltasHilera": 143, "totalPltas": 5148}]}, {"lote": "G15", "cod": "SG", "plantacion": "20-Nov-19", "has": 5.79, "pltasHa": 1730, "totalHileras": 70, "pltasHileraProm": 143, "totalPltasLote": 10010, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}, {"cuartel": "II", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}]}, {"lote": "G16", "cod": "SG", "plantacion": "23-Nov-19", "has": 5.87, "pltasHa": 1730, "totalHileras": 71, "pltasHileraProm": 143, "totalPltasLote": 10153, "cuarteles": [{"cuartel": "I", "hasCuartel": 2.89, "hileras": 35, "pltasHilera": 143, "totalPltas": 5005}, {"cuartel": "II", "hasCuartel": 2.98, "hileras": 36, "pltasHilera": 143, "totalPltas": 5148}]}, {"lote": "G17", "cod": "TM", "plantacion": "10-Dic-15", "has": 6.86, "pltasHa": 1730, "totalHileras": 83, "pltasHileraProm": 143, "totalPltasLote": 11869, "cuarteles": [{"cuartel": "I", "hasCuartel": 3.39, "hileras": 41, "pltasHilera": 143, "totalPltas": 5863}, {"cuartel": "II", "hasCuartel": 3.47, "hileras": 42, "pltasHilera": 143, "totalPltas": 6006}]}, {"lote": "G18", "cod": "TM", "plantacion": "16-Dic-15", "has": 6.86, "pltasHa": 1730, "totalHileras": 83, "pltasHileraProm": 143, "totalPltasLote": 11869, "cuarteles": [{"cuartel": "I", "hasCuartel": 3.39, "hileras": 41, "pltasHilera": 143, "totalPltas": 5863}, {"cuartel": "II", "hasCuartel": 3.47, "hileras": 42, "pltasHilera": 143, "totalPltas": 6006}]}, {"lote": "G19", "cod": "JS", "plantacion": "3-Dic-15", "has": 6.86, "pltasHa": 1730, "totalHileras": 83, "pltasHileraProm": 143, "totalPltasLote": 11869, "cuarteles": [{"cuartel": "I", "hasCuartel": 3.39, "hileras": 41, "pltasHilera": 143, "totalPltas": 5863}, {"cuartel": "II", "hasCuartel": 3.47, "hileras": 42, "pltasHilera": 143, "totalPltas": 6006}]}, {"lote": "G20", "cod": "JS", "plantacion": "12-Dic-15", "has": 6.94, "pltasHa": 1730, "totalHileras": 84, "pltasHileraProm": 143, "totalPltasLote": 12012, "cuarteles": [{"cuartel": "I", "hasCuartel": 3.47, "hileras": 42, "pltasHilera": 143, "totalPltas": 6006}, {"cuartel": "II", "hasCuartel": 3.47, "hileras": 42, "pltasHilera": 143, "totalPltas": 6006}]}, {"lote": "G21", "cod": "AC", "plantacion": "28-Oct-22", "has": 6.85, "pltasHa": 1730, "totalHileras": 83, "pltasHileraProm": 142, "totalPltasLote": 11859, "cuarteles": [{"cuartel": "I", "hasCuartel": 3.47, "hileras": 42, "pltasHilera": 143, "totalPltas": 6006}, {"cuartel": "II", "hasCuartel": 3.38, "hileras": "36/5", "pltasHilera": "143/141", "totalPltas": "5148/705"}]}, {"lote": "G22", "cod": "JS", "plantacion": "23-Dic-15", "has": 7.11, "pltasHa": 1730, "totalHileras": 86, "pltasHileraProm": 142, "totalPltasLote": 12294, "cuarteles": [{"cuartel": "I", "hasCuartel": 0.16, "hileras": "2/41", "pltasHilera": "141/143", "totalPltas": "282/5863"}, {"cuartel": "II", "hasCuartel": 6.94, "hileras": 43, "pltasHilera": 143, "totalPltas": 6149}]}, {"lote": "G23", "cod": "SG", "plantacion": "21-Dic-15", "has": 6.4, "pltasHa": 1730, "totalHileras": 83, "pltasHileraProm": 131, "totalPltasLote": 11070, "cuarteles": [{"cuartel": "I", "hasCuartel": 3.28, "hileras": "42/11", "pltasHilera": "135/135", "totalPltas": "5670/1485"}, {"cuartel": "II", "hasCuartel": 3.12, "hileras": "23/7", "pltasHilera": "134/119", "totalPltas": "3082/833"}]}, {"lote": "G24", "cod": "SG", "plantacion": "20-Ene-20", "has": 6.66, "pltasHa": 1730, "totalHileras": 87, "pltasHileraProm": 127, "totalPltasLote": 11530, "cuarteles": [{"cuartel": "I", "hasCuartel": 3.37, "hileras": "3/18/23", "pltasHilera": "119/134/133", "totalPltas": "357/2412/3059"}, {"cuartel": "II", "hasCuartel": 3.3, "hileras": "42/1", "pltasHilera": "133/116", "totalPltas": "5586/116"}]}], "resumen": [{"cod": "SG", "lotes": "G7,G8,G13,G14,G15,G16,G23,G24", "has": 46.69}, {"cod": "AC", "lotes": "G1,G2,G3,G4,G21", "has": 25.86}, {"cod": "TM", "lotes": "G9,G10,G17,G18", "has": 25.37}, {"cod": "JS", "lotes": "G19,G20,G22", "has": 20.91}, {"cod": "CC", "lotes": "G5,G6", "has": 11.32}, {"cod": "AL", "lotes": "G11,G12", "has": 11.64}], "total": 141.8}};
+
 const PARAMETROS_INICIALES = [
   { tipo: "pauta", labor: "1.PODA", lista: ["N° de cargadores a dejar", "N° de yemas por cargador"] },
   { tipo: "ev", labor: "1.PODA", lista: ["PROM CARGADORES", "PROM YEMAS", "PROM PITON"] },
@@ -239,7 +241,7 @@ function estadoLabor(fechaProg, fechaReal) {
   if (!fechaProg) return "sin-fecha";
   const dias = diffDias(fechaProg, hoy());
   if (dias < 0) return "vencida";
-  if (dias <= 14) return "proxima";
+  if (dias <= 7) return "proxima";
   return "pendiente";
 }
 
@@ -262,16 +264,17 @@ async function registrarBitacora(accion, detalle) {
 
 const db = {
   async cargarTodo() {
-    const [l, r, p, pr, m, b] = await Promise.all([
+    const [l, r, p, pr, m, b, dn] = await Promise.all([
       sb.from("corrida_lotes").select("*"),
       sb.from("corrida_reales").select("*"),
       sb.from("corrida_pautas").select("*").order("created_at", { ascending: false }),
       sb.from("corrida_parametros").select("*"),
       sb.from("corrida_materiales").select("*").order("created_at"),
-      sb.from("corrida_bitacora").select("*").order("creado_en", { ascending: false }).limit(60)
+      sb.from("corrida_bitacora").select("*").order("creado_en", { ascending: false }).limit(60),
+      sb.from("corrida_densidades").select("*")
     ]);
     for (const res of [l, r, p, pr, m]) if (res.error) throw res.error;
-    return { lotes: l.data, reales: r.data, pautas: p.data, parametros: pr.data, materiales: m.data, bitacora: b.data || [] };
+    return { lotes: l.data, reales: r.data, pautas: p.data, parametros: pr.data, materiales: m.data, bitacora: b.data || [], densidades: dn.data || [] };
   },
   async sembrarSiVacio(datos) {
     if (datos.lotes.length > 0) return false;
@@ -284,6 +287,10 @@ const db = {
     if (r1.error) throw r1.error;
     await sb.from("corrida_parametros").upsert(PARAMETROS_INICIALES, { onConflict: "tipo,labor" });
     await sb.from("corrida_materiales").insert(MATERIALES_INICIALES);
+    await sb.from("corrida_densidades").upsert([
+      { fundo: "AP", data: DENSIDADES_INICIALES.AP },
+      { fundo: "LG", data: DENSIDADES_INICIALES.LG }
+    ], { onConflict: "fundo" });
     return true;
   },
   async guardarLote(l) {
@@ -333,6 +340,19 @@ const db = {
     if (!r.error) registrarBitacora("Eliminó material", "");
     return r;
   },
+  async sembrarDensidadesSiFalta(densidades) {
+    // Si la tabla de densidades está vacía (app ya sembrada antes de esta versión), la llena
+    if (densidades && densidades.length > 0) return;
+    await sb.from("corrida_densidades").upsert([
+      { fundo: "AP", data: DENSIDADES_INICIALES.AP },
+      { fundo: "LG", data: DENSIDADES_INICIALES.LG }
+    ], { onConflict: "fundo" });
+  },
+  async guardarDensidad(fundo, data) {
+    const r = await sb.from("corrida_densidades").upsert({ fundo, data, ...sello() }, { onConflict: "fundo" });
+    if (!r.error) registrarBitacora("Editó densidades", `Fundo ${fundo}`);
+    return r;
+  },
   async cargarSemana(semanaLunes) {
     const r = await sb.from("corrida_semanal").select("*").eq("semana_lunes", semanaLunes);
     if (r.error) throw r.error;
@@ -368,6 +388,7 @@ function CronogramaUva() {
   const [mostrarAcceso, setMostrarAcceso] = useState(false);
   const [semanaLunes, setSemanaLunes] = useState(lunesDe(hoy()));
   const [celdasSemana, setCeldasSemana] = useState({});
+  const [densidades, setDensidades] = useState(null);
 
   // Aplicar la identidad al módulo de base de datos
   useEffect(() => {
@@ -405,6 +426,13 @@ function CronogramaUva() {
         duracionDias: f.duracion_dias || "", cantidadHa: f.cantidad_ha || "", labores: f.labores || []
       })));
       setBitacora(datos.bitacora || []);
+      // Densidades: si la tabla estaba vacía en una app ya existente, sembrarla ahora
+      await db.sembrarDensidadesSiFalta(datos.densidades);
+      let dn = datos.densidades;
+      if (!dn || dn.length === 0) dn = (await db.cargarTodo()).densidades;
+      const dmap = { AP: DENSIDADES_INICIALES.AP, LG: DENSIDADES_INICIALES.LG };
+      (dn || []).forEach(f => { dmap[f.fundo] = f.data; });
+      setDensidades(dmap);
     } catch (e) {
       console.error(e);
       setError(SUPABASE_ANON_KEY.includes("PEGA_AQUI")
@@ -426,6 +454,11 @@ function CronogramaUva() {
     } catch (e) { console.error(e); }
   };
   useEffect(() => { if (lotes) cargarSemana(); }, [semanaLunes, lotes]);
+
+  const guardarDensidad = (fundo, dataFundo) => {
+    setDensidades(prev => ({ ...prev, [fundo]: dataFundo }));
+    guardar(() => db.guardarDensidad(fundo, dataFundo));
+  };
 
   const guardarCeldaSemanal = (fundo, labor, dia, campo, valor) => {
     const key = `${fundo}|${labor}|${dia}`;
@@ -557,7 +590,7 @@ function CronogramaUva() {
         if (real) { totalComp++; return; }
         const dias = diffDias(f, hoy());
         if (dias < 0) vencidas.push({ lote: l.lote, labor: lab, fecha: f, dias });
-        else if (dias <= 14) proximas.push({ lote: l.lote, labor: lab, fecha: f, dias });
+        else if (dias <= 7) proximas.push({ lote: l.lote, labor: lab, fecha: f, dias });
       });
     });
     proximas.sort((a, b) => a.dias - b.dias);
@@ -596,7 +629,7 @@ function CronogramaUva() {
       </header>
 
       <nav style={S.tabs}>
-        {[["panel","Panel"],["cronograma","Cronograma"],["semanal","Semanal"],["lotes","Lotes"],["pautas","Pautas"],["materiales","Materiales"],["bitacora","Bitácora"]].map(([id, nombre]) => (
+        {[["panel","Panel"],["cronograma","Cronograma"],["semanal","Semanal"],["lotes","Lotes"],["pautas","Pautas"],["materiales","Materiales"],["densidades","Densidades"],["bitacora","Bitácora"]].map(([id, nombre]) => (
           <button key={id} onClick={() => setVista(id)}
             style={{ ...S.tab, ...(vista === id ? S.tabActiva : {}) }}>
             {nombre}
@@ -619,7 +652,7 @@ function CronogramaUva() {
         <div>
           <div style={S.cards}>
             <Card titulo="Labores vencidas" valor={metricas.vencidas.length} tono={metricas.vencidas.length > 0 ? "rojo" : "verde"} />
-            <Card titulo="Próximos 7 días" valor={metricas.proximas.length} tono="ambar" />
+            <Card titulo="Próximas 7 días" valor={metricas.proximas.length} tono="ambar" />
             <Card titulo="Completadas" valor={`${metricas.totalComp}/${metricas.totalProg}`} tono="verde" />
             <Card titulo="Lotes sin cianamida" valor={metricas.sinCrono.length} tono={metricas.sinCrono.length > 0 ? "uva" : "verde"} />
           </div>
@@ -639,9 +672,9 @@ function CronogramaUva() {
                 : <ListaLabores items={metricas.vencidas.slice(0, 12)} tono="rojo" onClick={(it) => setLoteAbierto(it.lote)} />}
             </section>
             <section>
-              <h2 style={S.subtitulo}>Próximas 14 días</h2>
+              <h2 style={S.subtitulo}>Próximas 7 días</h2>
               {metricas.proximas.length === 0
-                ? <p style={S.vacio}>Sin labores programadas en las próximas dos semanas.</p>
+                ? <p style={S.vacio}>Sin labores programadas en los próximos 7 días.</p>
                 : <ListaLabores items={metricas.proximas.slice(0, 12)} tono="ambar" onClick={(it) => setLoteAbierto(it.lote)} />}
             </section>
           </div>
@@ -659,7 +692,7 @@ function CronogramaUva() {
           <div style={S.leyenda}>
             <Chip color="#2e7d4f" texto="Completada" />
             <Chip color="#b3261e" texto="Vencida" />
-            <Chip color="#b8860b" texto="Próxima (≤14 d)" />
+            <Chip color="#b8860b" texto="Próxima (≤7 d)" />
             <Chip color="#8a8f85" texto="Programada" />
           </div>
 
@@ -762,6 +795,11 @@ function CronogramaUva() {
 
       {vista === "bitacora" && (
         <SeccionBitacora bitacora={bitacora} onRecargar={recargar} />
+      )}
+
+      {vista === "densidades" && (
+        <SeccionDensidades densidades={densidades} puedeEditar={puedeEditar}
+          onPedirAcceso={() => setMostrarAcceso(true)} onGuardar={guardarDensidad} />
       )}
 
       {vista === "semanal" && (
@@ -1322,6 +1360,170 @@ function SeccionSemanal({ lotes, fechasPorLote, semanaLunes, setSemanaLunes, cel
   );
 }
 
+// ============ SECCIÓN DENSIDADES ============
+function SeccionDensidades({ densidades, puedeEditar, onPedirAcceso, onGuardar }) {
+  const [fundo, setFundo] = useState("AP");
+  if (!densidades) return <p style={S.vacio}>Cargando densidades…</p>;
+  const info = densidades[fundo];
+  if (!info) return <p style={S.vacio}>Sin datos para este fundo.</p>;
+
+  const val = (x) => (x === "" || x === null || x === undefined) ? "" : x;
+
+  // Editar un campo de un cuartel concreto y guardar todo el fundo
+  const editarCuartel = (loteIdx, cuartelIdx, campo, valor) => {
+    const copia = JSON.parse(JSON.stringify(info));
+    copia.lotes[loteIdx].cuarteles[cuartelIdx][campo] = valor;
+    onGuardar(fundo, copia);
+  };
+  const editarLote = (loteIdx, campo, valor) => {
+    const copia = JSON.parse(JSON.stringify(info));
+    copia.lotes[loteIdx][campo] = valor;
+    onGuardar(fundo, copia);
+  };
+  const editarResumen = (idx, campo, valor) => {
+    const copia = JSON.parse(JSON.stringify(info));
+    copia.resumen[idx][campo] = valor;
+    onGuardar(fundo, copia);
+  };
+
+  // Celda: editable (input) si hay sesión, texto si es solo lectura
+  const Celda = ({ value, onChange, estilo, numerico }) => puedeEditar
+    ? <input type="text" inputMode={numerico ? "decimal" : "text"} style={S.densInput}
+        defaultValue={val(value)} key={val(value) + Math.random()}
+        onBlur={e => { if (e.target.value !== String(val(value))) onChange(e.target.value); }} />
+    : <span>{val(value)}</span>;
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+        <div style={S.switchModo}>
+          <button style={{ ...S.switchBtn, ...(fundo === "AP" ? S.switchActivo : {}) }}
+            onClick={() => setFundo("AP")}>Fundo AP</button>
+          <button style={{ ...S.switchBtn, ...(fundo === "LG" ? S.switchActivoReal : {}) }}
+            onClick={() => setFundo("LG")}>Fundo LG</button>
+        </div>
+        <span style={{ fontSize: 13, color: "#6b7565" }}>
+          {info.lotes.length} lotes · <b>{Number(info.total).toFixed(2)}</b> ha totales
+        </span>
+        {!puedeEditar && (
+          <button style={S.btnEntrar} onClick={onPedirAcceso}>🔒 Ingresar para editar</button>
+        )}
+      </div>
+
+      {puedeEditar && (
+        <p style={S.notaMat}>
+          Modo edición: toca cualquier celda para cambiarla. Los valores con varias hileras se escriben
+          con barra, ej. "6/26". Cada cambio se guarda en la base de datos.
+        </p>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 20 }}>
+        <div style={S.tablaWrap}>
+          <table style={S.densTabla}>
+            <thead>
+              <tr>
+                {["LOTE","COD.","FECHA DE PLANTACIÓN","HAS","HAS/CUARTEL","PLTAS/HA","CUARTEL",
+                  "HILERAS","TOTAL HILERAS","PLTAS/HILERA","PROM PLTAS/HIL","TOTAL PLTAS","TOTAL PLTAS LOTE"]
+                  .map((h, i) => <th key={i} style={S.densTh}>{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {info.lotes.map((l, li) => l.cuarteles.map((c, ci) => (
+                <tr key={`${l.lote}-${ci}`}>
+                  {ci === 0 && <>
+                    <td rowSpan={l.cuarteles.length} style={S.densLote}>{l.lote}</td>
+                    <td rowSpan={l.cuarteles.length} style={S.densCod}>
+                      <Celda value={l.cod} onChange={v => editarLote(li, "cod", v)} />
+                    </td>
+                    <td rowSpan={l.cuarteles.length} style={S.densCelda}>
+                      <Celda value={l.plantacion} onChange={v => editarLote(li, "plantacion", v)} />
+                    </td>
+                    <td rowSpan={l.cuarteles.length} style={S.densHas}>
+                      <Celda value={l.has} numerico onChange={v => editarLote(li, "has", parseFloat(v) || 0)} />
+                    </td>
+                  </>}
+                  <td style={S.densCelda}>
+                    <Celda value={c.hasCuartel} numerico onChange={v => editarCuartel(li, ci, "hasCuartel", v)} />
+                  </td>
+                  {ci === 0 && <td rowSpan={l.cuarteles.length} style={S.densPltasHa}>
+                    <Celda value={l.pltasHa} numerico onChange={v => editarLote(li, "pltasHa", parseFloat(v) || 0)} />
+                  </td>}
+                  <td style={S.densCuartel}>
+                    <Celda value={c.cuartel} onChange={v => editarCuartel(li, ci, "cuartel", v)} />
+                  </td>
+                  <td style={S.densCelda}>
+                    <Celda value={c.hileras} onChange={v => editarCuartel(li, ci, "hileras", v)} />
+                  </td>
+                  {ci === 0 && <td rowSpan={l.cuarteles.length} style={S.densTotal}>
+                    <Celda value={l.totalHileras} numerico onChange={v => editarLote(li, "totalHileras", v)} />
+                  </td>}
+                  <td style={S.densCelda}>
+                    <Celda value={c.pltasHilera} onChange={v => editarCuartel(li, ci, "pltasHilera", v)} />
+                  </td>
+                  {ci === 0 && <td rowSpan={l.cuarteles.length} style={S.densTotal}>
+                    <Celda value={l.pltasHileraProm} numerico onChange={v => editarLote(li, "pltasHileraProm", v)} />
+                  </td>}
+                  <td style={S.densCelda}>
+                    <Celda value={c.totalPltas} onChange={v => editarCuartel(li, ci, "totalPltas", v)} />
+                  </td>
+                  {ci === 0 && <td rowSpan={l.cuarteles.length} style={S.densTotalLote}>
+                    <Celda value={l.totalPltasLote} numerico onChange={v => editarLote(li, "totalPltasLote", v)} />
+                  </td>}
+                </tr>
+              )))}
+              <tr>
+                <td colSpan={3} style={S.densTotalFila}>TOTAL</td>
+                <td style={S.densTotalFila}>{Number(info.total).toFixed(2)}</td>
+                <td colSpan={9} style={{ background: "#fff", border: "none" }}></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h3 style={{ ...S.subtitulo, fontSize: 16, marginBottom: 8 }}>Resumen por variedad</h3>
+          <div style={{ ...S.tablaWrap, maxWidth: 560 }}>
+            <table style={{ ...S.densTabla, minWidth: 360 }}>
+              <thead>
+                <tr>
+                  <th style={S.densThResumen}>COD.</th>
+                  <th style={{ ...S.densThResumen, textAlign: "left", paddingLeft: 10 }}>LOTES</th>
+                  <th style={S.densThResumen}>HAS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {info.resumen.map((r, ri) => (
+                  <tr key={ri}>
+                    <td style={S.densCod}><Celda value={r.cod} onChange={v => editarResumen(ri, "cod", v)} /></td>
+                    <td style={{ ...S.densCelda, textAlign: "left", paddingLeft: 10 }}>
+                      <Celda value={r.lotes} onChange={v => editarResumen(ri, "lotes", v)} />
+                    </td>
+                    <td style={S.densHas}>
+                      <Celda value={r.has} numerico onChange={v => editarResumen(ri, "has", parseFloat(v) || 0)} />
+                    </td>
+                  </tr>
+                ))}
+                <tr>
+                  <td colSpan={2} style={S.densTotalFila}>TOTAL</td>
+                  <td style={{ ...S.densTotalFila, color: "#fff" }}>{Number(info.total).toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {puedeEditar && (
+            <p style={{ fontSize: 12, color: "#8a8f85", marginTop: 8 }}>
+              El TOTAL de hectáreas se toma del campo guardado. Si cambias hectáreas de lotes y quieres
+              actualizar el total del fundo, edítalo aquí:
+              <Celda value={info.total} numerico onChange={v => onGuardar(fundo, { ...info, total: parseFloat(v) || 0 })} />
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ MODAL DE ACCESO ============
 // ============ MODAL DE ACCESO ============
 function ModalAcceso({ onCerrar, onEntrar }) {
   const [clave, setClave] = useState("");
@@ -1782,6 +1984,20 @@ const S = {
   semTotalLabel: { padding: "5px 8px", background: "#f5ee9e", color: "#5a5410", fontWeight: 700, fontSize: 11.5, textAlign: "right", border: "1px solid #e5dd8a" },
   semTotalCell: { padding: "5px 4px", background: "#f8f2b8", color: "#5a5410", fontWeight: 700, fontSize: 12, textAlign: "center", border: "1px solid #e5dd8a" },
   semSubtotal: { padding: "4px", fontWeight: 700, fontSize: 11.5, textAlign: "center", border: "1px solid #d5e8db" },
+  // Densidades
+  densTabla: { borderCollapse: "collapse", fontSize: 11, width: "100%", minWidth: 920 },
+  densTh: { padding: "6px 4px", background: "#3d6b45", color: "#fff", fontWeight: 700, fontSize: 10, textAlign: "center", border: "1px solid #2f5436", lineHeight: 1.2 },
+  densThResumen: { padding: "6px 8px", background: "#2f4770", color: "#fff", fontWeight: 700, fontSize: 11, textAlign: "center", border: "1px solid #24365a" },
+  densCelda: { padding: "4px 6px", border: "1px solid #e2e0d6", textAlign: "center", whiteSpace: "nowrap" },
+  densLote: { padding: "4px 6px", border: "1px solid #e2e0d6", textAlign: "center", fontWeight: 700, color: VERDE_OSCURO, background: "#f4f6f2" },
+  densCod: { padding: "4px 6px", border: "1px solid #e2e0d6", textAlign: "center", fontWeight: 700, color: "#6b3fa0" },
+  densHas: { padding: "4px 6px", border: "1px solid #e2e0d6", textAlign: "center", fontWeight: 700, background: "#e5f2e9", color: "#1c4a2c" },
+  densPltasHa: { padding: "4px 6px", border: "1px solid #e2e0d6", textAlign: "center", fontWeight: 600, background: "#f3e9df", color: "#7a4a1e" },
+  densCuartel: { padding: "4px 6px", border: "1px solid #e2e0d6", textAlign: "center", fontWeight: 600 },
+  densTotal: { padding: "4px 6px", border: "1px solid #e2e0d6", textAlign: "center", fontWeight: 700, background: "#eef4f0" },
+  densTotalLote: { padding: "4px 6px", border: "1px solid #e2e0d6", textAlign: "center", fontWeight: 700, background: "#eaf3ee", color: "#1c4a2c" },
+  densTotalFila: { padding: "5px 8px", border: "1px solid #d5cf7a", textAlign: "center", fontWeight: 700, background: "#c0392b", color: "#fff" },
+  densInput: { width: "100%", minWidth: 44, padding: "3px 4px", border: "1px solid #cbb8e4", borderRadius: 4, fontSize: 11, fontFamily: "inherit", textAlign: "center", background: "#fff", color: "#26302a" },
 };
 
 ReactDOM.createRoot(document.getElementById("root")).render(<CronogramaUva />);
